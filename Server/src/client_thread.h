@@ -10,7 +10,6 @@
 #ifndef CLIENT_THREAD_H_
 #define CLIENT_THREAD_H_
 
-#include "MsgBusImpl_kafka.h"
 #include "BMPListener.h"
 #include "Logger.h"
 #include "Config.h"
@@ -28,7 +27,7 @@ struct ThreadMgmt {
 };
 
 struct ClientThreadInfo {
-    msgBus_kafka *mbus;
+    // msgBus_kafka *mbus; // To be replaced with redis
     BMPListener::ClientInfo *client;
     Logger *log;
 
