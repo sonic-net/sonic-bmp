@@ -13,6 +13,7 @@
 #include <cstring>
 #include <thread>
 #include <unistd.h>
+#include <memory>
 
 #include "client_thread.h"
 #include "BMPReader.h"
@@ -55,12 +56,6 @@ void ClientThread_cancel(void *arg) {
             delete cInfo->bmp_reader_thread;
             cInfo->bmp_reader_thread = NULL;
         }
-
-        // To be replaced with redis
-        //if (cInfo->mbus != NULL) {
-        //    delete cInfo->mbus;
-        //    cInfo->mbus = NULL;
-        }
     }
 }
 
@@ -79,7 +74,7 @@ void *ClientThread(void *arg) {
 
     // Setup the client thread info struct
     ClientThreadInfo cInfo;
-    //cInfo.mbus = NULL; // To be replaced with redis
+    cInfo.redis = NULL; // To be replaced with redis
     cInfo.client = &thr->client;
     cInfo.log = thr->log;
     cInfo.closing = false;
@@ -95,11 +90,8 @@ void *ClientThread(void *arg) {
     pthread_cleanup_push(ClientThread_cancel, &cInfo);
 
     try {
-        // connect to message bus
-        //cInfo.mbus = new msgBus_kafka(logger, thr->cfg, thr->cfg->c_hash_id); // To be replaced with redis
-
-        //if (thr->cfg->debug_msgbus)
-        //    cInfo.mbus->enableDebug();
+        // connect to redis
+        cInfo.redis = std::make_shared<MsgBusImpl_redis>(logger, thr->cfg);
 
         BMPReader rBMP(logger, thr->cfg);
         LOG_INFO("Thread started to monitor BMP from router %s using socket %d buffer in bytes = %u",
@@ -116,7 +108,7 @@ void *ClientThread(void *arg) {
         bool bmp_run = true;
         //cInfo.bmp_reader_thread = new std::thread([&] {rBMP.readerThreadLoop(bmp_run,cInfo.client,
         cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client,
-                                                                             NULL /*(MsgBusInterface *)cInfo.mbus*/ );
+                                                                             (MsgBusInterface *)cInfo.redis);
 
         // Variables to handle circular buffer
         sock_buf = new unsigned char[thr->cfg->bmp_buffer_size];
@@ -276,12 +268,6 @@ void *ClientThread(void *arg) {
             cInfo.bmp_reader_thread = NULL;
         }
 
-
-        // To be replaced with redis
-        //if (cInfo.mbus != NULL) {
-        //    delete cInfo.mbus;
-        //    cInfo.mbus = NULL;
-        //}
     }
 
     // Exit the thread

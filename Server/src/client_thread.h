@@ -13,6 +13,7 @@
 #include "BMPListener.h"
 #include "Logger.h"
 #include "Config.h"
+#include "redis/MsgBusImpl_redis.h"
 #include <thread>
 
 #define CLIENT_WRITE_BUFFER_BLOCK_SIZE    8192        // Number of bytes to write to BMP reader from buffer
@@ -27,7 +28,7 @@ struct ThreadMgmt {
 };
 
 struct ClientThreadInfo {
-    // msgBus_kafka *mbus; // To be replaced with redis
+    MsgBusImpl_redis *redis;
     BMPListener::ClientInfo *client;
     Logger *log;
 

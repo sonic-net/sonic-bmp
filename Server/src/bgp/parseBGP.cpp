@@ -348,26 +348,9 @@ u_char parseBGP::parseBgpHeader(u_char *data, size_t size) {
  */
 void parseBGP::UpdateDB(bgp_msg::UpdateMsg::parsed_update_data &parsed_data) {
     /*
-     * Update the path attributes
-     */
-    UpdateDBAttrs(parsed_data.attrs);
-
-    /*
-     * Update the bgp-ls data
-     */
-    UpdateDbBgpLs(false, parsed_data.ls, parsed_data.ls_attrs);
-    UpdateDbBgpLs(true, parsed_data.ls_withdrawn, parsed_data.ls_attrs);
-
-    /*
      * Update the advertised prefixes (both ipv4 and ipv6)
      */
     UpdateDBAdvPrefixes(parsed_data.advertised, parsed_data.attrs);
-
-    UpdateDBL3Vpn(false,parsed_data.vpn, parsed_data.attrs);
-    UpdateDBL3Vpn(true,parsed_data.vpn_withdrawn, parsed_data.attrs);
-
-    UpdateDBeVPN(false, parsed_data.evpn, parsed_data.attrs);
-    UpdateDBeVPN(true, parsed_data.evpn_withdrawn, parsed_data.attrs);
 
     /*
      * Update withdraws (both ipv4 and ipv6)
