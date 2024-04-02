@@ -52,7 +52,7 @@ if (NOT LIBRT_LIBRARY AND NOT MACOSX)
 endif()
 
 # Update the include dir
-include_directories(${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/kafka)
+include_directories(${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate)
 #link_directories(${LIBRDKAFKA_LIBRARY})
 
 
@@ -99,7 +99,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set the libs to link
-set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
+set (LIBS pthread ${LIBYAML_CPP_LIBRARY} z ${SSL_LIBS} dl)
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})
