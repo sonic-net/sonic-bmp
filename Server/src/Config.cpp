@@ -21,7 +21,7 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "Config.h"
-#include "kafka/KafkaTopicSelector.h"
+//#include "kafka/KafkaTopicSelector.h"
 
 /*********************************************************************//**
  * Constructor for class
@@ -62,6 +62,7 @@ Config::Config() {
      *      The keys match the configuration node/vars. Topic name nodes will be ignored if
      *      not initialized here.
      */
+    /*
     topic_names_map[MSGBUS_TOPIC_VAR_COLLECTOR]        = MSGBUS_TOPIC_COLLECTOR;
     topic_names_map[MSGBUS_TOPIC_VAR_ROUTER]           = MSGBUS_TOPIC_ROUTER;
     topic_names_map[MSGBUS_TOPIC_VAR_PEER]             = MSGBUS_TOPIC_PEER;
@@ -74,6 +75,7 @@ Config::Config() {
     topic_names_map[MSGBUS_TOPIC_VAR_LS_PREFIX]        = MSGBUS_TOPIC_LS_PREFIX;
     topic_names_map[MSGBUS_TOPIC_VAR_L3VPN]            = MSGBUS_TOPIC_L3VPN;
     topic_names_map[MSGBUS_TOPIC_VAR_EVPN]             = MSGBUS_TOPIC_EVPN;
+    */
 }
 
 /*********************************************************************//**
