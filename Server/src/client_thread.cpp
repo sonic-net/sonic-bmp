@@ -56,9 +56,10 @@ void ClientThread_cancel(void *arg) {
             cInfo->bmp_reader_thread = NULL;
         }
 
-        if (cInfo->mbus != NULL) {
-            delete cInfo->mbus;
-            cInfo->mbus = NULL;
+        // To be replaced with redis
+        //if (cInfo->mbus != NULL) {
+        //    delete cInfo->mbus;
+        //    cInfo->mbus = NULL;
         }
     }
 }
@@ -78,7 +79,7 @@ void *ClientThread(void *arg) {
 
     // Setup the client thread info struct
     ClientThreadInfo cInfo;
-    cInfo.mbus = NULL;
+    //cInfo.mbus = NULL; // To be replaced with redis
     cInfo.client = &thr->client;
     cInfo.log = thr->log;
     cInfo.closing = false;
@@ -95,10 +96,10 @@ void *ClientThread(void *arg) {
 
     try {
         // connect to message bus
-        cInfo.mbus = new msgBus_kafka(logger, thr->cfg, thr->cfg->c_hash_id);
+        //cInfo.mbus = new msgBus_kafka(logger, thr->cfg, thr->cfg->c_hash_id); // To be replaced with redis
 
-        if (thr->cfg->debug_msgbus)
-            cInfo.mbus->enableDebug();
+        //if (thr->cfg->debug_msgbus)
+        //    cInfo.mbus->enableDebug();
 
         BMPReader rBMP(logger, thr->cfg);
         LOG_INFO("Thread started to monitor BMP from router %s using socket %d buffer in bytes = %u",
@@ -115,7 +116,7 @@ void *ClientThread(void *arg) {
         bool bmp_run = true;
         //cInfo.bmp_reader_thread = new std::thread([&] {rBMP.readerThreadLoop(bmp_run,cInfo.client,
         cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client,
-                                                                             (MsgBusInterface *)cInfo.mbus );
+                                                                             NULL /*(MsgBusInterface *)cInfo.mbus*/ );
 
         // Variables to handle circular buffer
         sock_buf = new unsigned char[thr->cfg->bmp_buffer_size];
@@ -276,10 +277,11 @@ void *ClientThread(void *arg) {
         }
 
 
-        if (cInfo.mbus != NULL) {
-            delete cInfo.mbus;
-            cInfo.mbus = NULL;
-        }
+        // To be replaced with redis
+        //if (cInfo.mbus != NULL) {
+        //    delete cInfo.mbus;
+        //    cInfo.mbus = NULL;
+        //}
     }
 
     // Exit the thread
