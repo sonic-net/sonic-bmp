@@ -60,7 +60,7 @@ void ClientThread_cancel(void *arg) {
         //if (cInfo->mbus != NULL) {
         //    delete cInfo->mbus;
         //    cInfo->mbus = NULL;
-        //}
+        }
     }
 }
 
@@ -116,7 +116,7 @@ void *ClientThread(void *arg) {
         bool bmp_run = true;
         //cInfo.bmp_reader_thread = new std::thread([&] {rBMP.readerThreadLoop(bmp_run,cInfo.client,
         cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client,
-                                                                             (MsgBusInterface *)(NULL) );
+                                                                             NULL /*(MsgBusInterface *)cInfo.mbus*/ );
 
         // Variables to handle circular buffer
         sock_buf = new unsigned char[thr->cfg->bmp_buffer_size];
