@@ -1,0 +1,69 @@
+trigger: none
+
+parameters:
+- name: arch
+  type: string
+  values:
+  - amd64
+  default: amd64
+
+- name: pool
+  type: string
+  values:
+  - sonicbld
+  - sonicbld-armhf
+  - sonicbld-arm64
+  - default
+  default: default
+
+- name: timeout
+  type: number
+  default: 60
+
+- name: sonic_slave
+  type: string
+  default: sonic-slave-bullseye
+
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(Build.SourceBranchName)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily
+  always: true
+  branches:
+    include:
+    - master
+
+jobs:
+- job: build
+  timeoutInMinutes: 240
+  pool:
+    vmImage: 'ubuntu-20.04'
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+
+  steps:
+    - checkout: none
+    - script: |
+        sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libssl1.0.0 libsasl2-2 libssl-dev libsasl2-dev
+        git status
+
+        git clone https://github.com/jbeder/yaml-cpp.git
+        cd yaml-cpp
+        mkdir build
+        cd build
+        cmake -DBUILD_SHARED_LIBS=OFF ..
+        make
+        sudo make install
+
+        git clone https://github.com/FengPan-Frank/sonic-bmp.git
+        cd sonic-bmp
+        mkdir build
+        cd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
+        make
