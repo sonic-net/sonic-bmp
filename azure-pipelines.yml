@@ -61,7 +61,7 @@ jobs:
         make
         sudo make install
 
-        git clone https://github.com/FengPan-Frank/sonic-bmp.git
+        git clone https://github.com/sonic-net/sonic-bmp.git
         cd sonic-bmp
         mkdir build
         cd build
