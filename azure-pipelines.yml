@@ -51,7 +51,7 @@ jobs:
     - checkout: none
     - script: |
         sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libssl1.0.0 libsasl2-2 libssl-dev libsasl2-dev
-        export LD_LIBRARY_PATH="/usr/lib:$LD_LIBRARY_PATH"  
+        sudo export LD_LIBRARY_PATH="/usr/lib:$LD_LIBRARY_PATH"  
         git status
 
         git clone https://github.com/jbeder/yaml-cpp.git
@@ -68,3 +68,5 @@ jobs:
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
         make
+        ldconfig -p | grep libsasl2  
+
