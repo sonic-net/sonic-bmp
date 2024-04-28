@@ -1,0 +1,79 @@
+trigger: none
+
+parameters:
+- name: arch
+  type: string
+  values:
+  - amd64
+  default: amd64
+
+- name: pool
+  type: string
+  values:
+  - sonicbld
+  - default
+  default: default
+
+- name: timeout
+  type: number
+  default: 60
+
+- name: sonic_slave
+  type: string
+  default: sonic-slave-bullseye
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily
+  always: true
+  branches:
+    include:
+    - master
+
+jobs:
+- job: build
+  timeoutInMinutes: 240
+  pool:
+    vmImage: 'ubuntu-20.04'
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:master
+
+
+  steps:
+    - checkout: none
+    - script: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2 libsasl2-dev
+        sudo apt-get remove -y libcurl4-openssl-dev
+
+        git clone https://github.com/jbeder/yaml-cpp.git
+        pushd yaml-cpp
+        mkdir build
+        pushd build
+        cmake -DBUILD_SHARED_LIBS=OFF ..
+        make
+        sudo make install
+        popd
+        popd
+
+        git clone https://github.com/edenhill/librdkafka.git
+        pushd librdkafka
+        ./configure
+        make
+        sudo make install
+        popd
+
+        git clone https://github.com/sonic-net/sonic-bmp.git
+        pushd openbmp
+        git checkout $(Build.SourceBranchName)
+        mkdir build
+        pushd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+        popd
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-bmp.amd64.ubuntu20_04
+      displayName: "Archive sonic-bmp packages"
+
