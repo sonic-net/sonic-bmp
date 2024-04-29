@@ -65,7 +65,7 @@ jobs:
         popd
 
         git clone https://github.com/sonic-net/sonic-bmp.git
-        pushd openbmp
+        pushd sonic-bmp
         git checkout $(Build.SourceBranchName)
         mkdir build
         pushd build
