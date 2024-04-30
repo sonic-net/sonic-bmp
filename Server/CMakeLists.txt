@@ -16,6 +16,7 @@ if(ENABLE_REDIS)
 endif()
 
 
+
 # Find and set the env for the mysql c++ connector
 set(HINT_ROOT_DIR
         "${HINT_ROOT_DIR}"
