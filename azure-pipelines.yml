@@ -15,7 +15,7 @@ pr:
 variables:
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
-      value: $(System.PullRequest.TargetBranch)
+      value: $(System.PullRequest.SourceBranch)
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
@@ -86,8 +86,6 @@ jobs:
         git clone https://github.com/sonic-net/sonic-bmp.git
         pushd sonic-bmp
         git checkout $(BUILD_BRANCH)
-        echo variables['Build.Reason']
-        echo $(System.PullRequest.SourceBranch)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
