@@ -86,6 +86,8 @@ jobs:
         git clone https://github.com/sonic-net/sonic-bmp.git
         pushd sonic-bmp
         git checkout $(BUILD_BRANCH)
+        echo $(variables['Build.Reason'])
+        echo $(System.PullRequest.TargetBranch)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
