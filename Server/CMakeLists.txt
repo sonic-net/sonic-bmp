@@ -7,6 +7,13 @@ else()
     set(SSL_LIBS )
 endif()
 
+# cmake -DENABLE_REDIS=ON
+option(ENABLE_REDIS "Enable Redis population" OFF)
+
+# Add the compile flag
+if(ENABLE_REDIS)
+    add_definitions(-DREDIS_ENABLED)
+endif()
 
 
 # Find and set the env for the mysql c++ connector
