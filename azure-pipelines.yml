@@ -1,4 +1,23 @@
-trigger: none
+trigger:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+pr:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.TargetBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
 
 parameters:
 - name: arch
@@ -66,7 +85,7 @@ jobs:
 
         git clone https://github.com/sonic-net/sonic-bmp.git
         pushd sonic-bmp
-        git checkout $(Build.SourceBranchName)
+        git checkout $(BUILD_BRANCH)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
