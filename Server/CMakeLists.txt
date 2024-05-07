@@ -83,7 +83,7 @@ else ()
 
     find_library(LIBSWSSCOMMON_LIBRARY
             NAMES
-            swsscommon
+            libswsscommon.a libswsscommon
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -193,7 +193,7 @@ endif()
 if (NOT ENABLE_REDIS)
     set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
 else ()
-    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} z ${SSL_LIBS} dl)
+    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBHIREDIS_LIBRARY} ${LIBSWSSCOMMON_LIBRARY} z ${SSL_LIBS} dl)
 endif ()
 
 # Set the binary

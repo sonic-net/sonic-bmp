@@ -168,7 +168,6 @@ void RedisManager::SubscriberWorker(const std::string& table) {
 }
 
 
-
 /**
  * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
  *

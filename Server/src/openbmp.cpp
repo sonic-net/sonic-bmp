@@ -401,6 +401,7 @@ void collector_update_msg(Config &cfg,
  * \param [in] cfg                   Reference to configuration
  * \param [in] code                  reason code for the update
  */
+#ifndef REDIS_ENABLED
 void collector_update_msg(msgBus_kafka *kafka, Config &cfg,
                           MsgBusInterface::collector_action_code code) {
     MsgBusInterface::obj_collector oc;
@@ -425,7 +426,9 @@ void collector_update_msg(msgBus_kafka *kafka, Config &cfg,
     oc.timestamp_secs = tv.tv_sec;
     oc.timestamp_us = tv.tv_usec;
 
+#ifndef REDIS_ENABLED
     kafka->update_Collector(oc, code);
+#endif
 }
 
 /**
