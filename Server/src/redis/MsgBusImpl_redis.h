@@ -37,6 +37,13 @@ public:
     MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client);
     ~MsgBusImpl_redis();
 
+    /**
+     * Reset all Tables once FRR reconnects to BMP, this will not disable table population
+     *
+     * \param [in] N/A
+     */
+    void ResetAllTables();
+
     /*
      * abstract methods implemented
      * See MsgBusInterface.hpp for method details

@@ -19,11 +19,11 @@
 #include <string>
 #include <list>
 #include <map>
+#include <mutex>
 #include <unordered_set>
 #include <functional>
 #include <vector>
 #include "Logger.h"
-#include "BMPListener.h"
 
 
 /**
@@ -41,7 +41,7 @@
 /**
  * BMP_CFG_TABLE_* defines config db tables.
  */
-#define BMP_CFG_DB_NAME            "CONFIG_DB"
+#define BMP_CFG_DB_NAME            "BMP"
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
 #define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
 #define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
@@ -73,14 +73,8 @@ public:
      * \param [in] logPtr     logger pointer
      * \param [in] client     client pointer
      ***********************************************************************/
-    void Setup(Logger *logPtr, BMPListener::ClientInfo *client);
+    void Setup(Logger *logPtr);
 
-    /**
-    * DisconnectBMP
-    *
-    * \param [in] N/A
-    */
-    void DisconnectBMP();
 
     /**
     * ExitRedisManager
@@ -113,18 +107,11 @@ public:
     bool WriteBMPTable(const std::string& table, const std::vector<std::string>& keys, const std::vector<swss::FieldValueTuple> fieldValues);
 
     /**
-    * SubscriberWorker, thread main for redis table subcriber.
-    *
-    * \param [in] table       table name to be subscribed.
-    */
-    void SubscriberWorker(const std::string& table);
-
-    /**
-     * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
+     * InitBMPConfig, read config_db for table enablement setting.
      *
-     * \param [in] tables     table names to be subscribed.
+     * \param [in] N/A
      */
-    bool ReadBMPTable(const std::vector<std::string>& tables);
+    bool InitBMPConfig();
 
     /**
      * RemoveBMPTable
@@ -133,21 +120,6 @@ public:
      * \param [in] args             Reference to various keys
      */
     bool RemoveBMPTable(const std::vector<std::string>& keys);
-
-    /**
-     * Enable specific Table
-     *
-     * \param [in] table    Reference to table name
-     */
-    bool EnableTable(const std::string & table);
-
-    /**
-     * Enable BGP_Neighbor* Table
-     *
-     * \param [in] table    Reference to table name
-     */
-    bool DisableTable(const std::string & table);
-
 
     /**
      * Get Key separator for deletion
@@ -161,9 +133,7 @@ private:
     std::string separator_;
     Logger *logger;
     std::unordered_set<std::string> enabledTables_;
-    std::vector<std::shared_ptr<std::thread>> threadList_;
     bool exit_;
-    BMPListener::ClientInfo *client_;
 };
 
 

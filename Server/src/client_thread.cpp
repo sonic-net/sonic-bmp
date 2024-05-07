@@ -106,6 +106,7 @@ void *ClientThread(void *arg) {
 #else
         // connect to redis
         cInfo.redis = std::make_shared<MsgBusImpl_redis>(logger, thr->cfg, cInfo.client);
+        cInfo.redis.ResetAllTables();
 #endif
         BMPReader rBMP(logger, thr->cfg);
         LOG_INFO("Thread started to monitor BMP from router %s using socket %d buffer in bytes = %u",

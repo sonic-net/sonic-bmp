@@ -24,12 +24,6 @@ RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
  * Constructor for class
  ***********************************************************************/
 RedisManager::~RedisManager() {
-    if (!exit_) {
-        exit_ = true;
-        for (auto& threadPtr : threadList_) {
-            threadPtr->join();
-        }
-    }
 }
 
 
@@ -38,9 +32,8 @@ RedisManager::~RedisManager() {
  *
  * \param [in] logPtr     logger pointer
  ***********************************************************************/
-void RedisManager::Setup(Logger *logPtr, BMPListener::ClientInfo *client) {
+void RedisManager::Setup(Logger *logPtr) {
     logger = logPtr;
-    client_ = client;
 }
 
 
@@ -95,16 +88,6 @@ bool RedisManager::RemoveBMPTable(const std::vector<std::string>& keys) {
     return true;
 }
 
-/**
- * DisconnectBMP
- *
- * \param [in] N/A
- */
-void RedisManager::DisconnectBMP() {
-    LOG_INFO("RedisManager DisconnectBMP");
-    close(client_->c_sock);
-    client_->c_sock = 0;
-}
 
 /**
  * ExitRedisManager
@@ -113,94 +96,24 @@ void RedisManager::DisconnectBMP() {
  */
 void RedisManager::ExitRedisManager() {
     exit_ = true;
-    for (auto& threadPtr : threadList_) {
-        threadPtr->join();
-    }
 }
 
+
 /**
- * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
+ * InitBMPConfig, read config_db for table enablement setting.
  *
- * \param [in] tables             table names to be subscribed.
+ * \param [in] N/A
  */
-void RedisManager::SubscriberWorker(const std::string& table) {
-    try {
-        swss::DBConnector cfgDb("CONFIG_DB", 0, true);
-
-        swss::SubscriberStateTable conf_table(&cfgDb, table);
-        swss::Select s;
-        s.addSelectable(&conf_table);
-
-        while (!exit_) {
-            swss::Selectable *sel;
-            int ret;
-
-            ret = s.select(&sel, BMP_CFG_TABLE_SELECT_TIMEOUT);
-            if (ret == swss::Select::ERROR) {
-                SWSS_LOG_NOTICE("Error: %s!", strerror(errno));
-                continue;
-            }
-            if (ret == swss::Select::TIMEOUT) {
-                continue;
-            }
-
-            swss::KeyOpFieldsValuesTuple kco;
-            conf_table.pop(kco);
-
-            if (std::get<0>(kco) == "SET") {
-                if (std::get<1>(kco) == "true") {
-                    EnableTable(table);
-                }
-                else {
-                    DisableTable(table);
-                }
-                DisconnectBMP();
-            }
-            else if (std::get<0>(kco) == "DEL")
-            {
-                LOG_ERR("Config should not be deleted");
-            }
+bool RedisManager::InitBMPConfig(const std::vector<std::string>& tables) {
+    auto connector = ConfigDBConnector_Native();
+    connector.connect(false);
+    auto items = db.get_entry(BMP_CFG_DB_NAME, "table");
+    for (const auto& item : items) {
+        if (item.second == "true") {
+            enabledTables_.insert(item.first);
         }
     }
-    catch (const exception &e) {
-        LOG_ERR("Runtime error: %s", e.what());
-    }
-}
-
-
-/**
- * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
- *
- * \param [in] tables             table names to be subscribed.
- */
-bool RedisManager::ReadBMPTable(const std::vector<std::string>& tables) {
-    for (const auto& table : tables) {
-        std::shared_ptr<std::thread> threadPtr = std::make_shared<std::thread>(
-            std::bind(&RedisManager::SubscriberWorker, this, table));
-        threadList_.push_back(threadPtr);
-    }
     return true;
-}
-
-
-/**
- * Enable specific Table
- *
- * \param [in] table    Reference to table name, like BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
- */
-bool RedisManager::EnableTable(const std::string & table) {
-    enabledTables_.insert(table);
-    return true;
-}
-
-/**
- * Enable BGP_Neighbor* Table
- *
- * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
- */
-bool RedisManager::DisableTable(const std::string & table) {
-    enabledTables_.erase(table);
-    return ResetBMPTable(table);
 }
 
 
@@ -229,6 +142,7 @@ bool RedisManager::ResetBMPTable(const std::string & table) {
  */
 void RedisManager::ResetAllTables() {
     LOG_INFO("RedisManager ResetAllTables");
+
     for (const auto& enabledTable : enabledTables_) {
         ResetBMPTable(enabledTable);
     }

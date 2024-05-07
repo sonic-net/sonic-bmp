@@ -26,13 +26,8 @@ using namespace std;
 MsgBusImpl_redis::MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client) {
     logger = logPtr;
     this->cfg = cfg;
-    redisMgr_.Setup(logPtr, client);
-    vector<string> tables;
-    tables.emplace_back(BMP_CFG_TABLE_NEI);
-    tables.emplace_back(BMP_CFG_TABLE_RIB_IN);
-    tables.emplace_back(BMP_CFG_TABLE_RIB_OUT);
-
-    redisMgr_.ReadBMPTable(tables);
+    redisMgr_.Setup(logPtr);
+    redisMgr_.InitBMPConfig();
 }
 
 /**
@@ -42,6 +37,14 @@ MsgBusImpl_redis::~MsgBusImpl_redis() {
     redisMgr_.ExitRedisManager();
 }
 
+/**
+ * Reset all Tables once FRR reconnects to BMP, this will not disable table population
+ *
+ * \param [in] N/A
+ */
+void MsgBusImpl_redis::ResetAllTables() {
+    redisMgr_.ResetBMPTable(enabledTable);
+}
 
 /**
  * Abstract method Implementation - See MsgBusInterface.hpp for details
