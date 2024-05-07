@@ -1,0 +1,151 @@
+trigger:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+pr:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.TargetBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
+
+parameters:
+- name: arch
+  type: string
+  values:
+  - amd64
+  default: amd64
+
+- name: pool
+  type: string
+  values:
+  - sonicbld
+  - default
+  default: default
+
+- name: timeout
+  type: number
+  default: 60
+
+- name: sonic_slave
+  type: string
+  default: sonic-slave-bullseye
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily
+  always: true
+  branches:
+    include:
+    - master
+
+jobs:
+- job: build
+  timeoutInMinutes: 240
+  pool:
+    vmImage: 'ubuntu-20.04'
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:master
+
+
+  steps:
+    - checkout: none
+    - script: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2 libsasl2-dev
+        sudo apt-get remove -y libcurl4-openssl-dev
+
+        git clone https://github.com/jbeder/yaml-cpp.git
+        pushd yaml-cpp
+        mkdir build
+        pushd build
+        cmake -DBUILD_SHARED_LIBS=OFF ..
+        make
+        sudo make install
+        popd
+        popd
+
+        git clone https://github.com/edenhill/librdkafka.git
+        pushd librdkafka
+        ./configure
+        make
+        sudo make install
+        popd
+
+        # Sanity check
+        mkdir original_bmp
+        pushd original_bmp
+        git clone https://github.com/sonic-net/sonic-bmp.git
+        pushd sonic-bmp
+        git checkout $(BUILD_BRANCH)
+        mkdir build
+        pushd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+        popd
+        popd
+
+        # sonic option
+        sudo apt-get install -qq -y \
+        libhiredis-dev \
+        libnl-3-dev \
+        libnl-genl-3-dev \
+        libnl-route-3-dev \
+        libnl-nf-3-dev \
+        swig
+
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libssl1.0.0
+        git clone https://github.com/sonic-net/sonic-swss-common.git
+        sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
+                    libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+                    libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
+                    libgtest-dev libgmock-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
+        sudo apt-get install -y redis-server redis-tools
+        sudo apt-get install -y python3-pip
+        sudo pip3 install pytest
+        sudo apt-get install -y python
+        sudo apt-get install -y libyang-dev
+        ARCH=$(dpkg --print-architecture)
+        set -x
+        sudo curl -fsSL -o /usr/local/bin/bazel \
+            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
+        sudo chmod 755 /usr/local/bin/bazel
+        pushd sonic-swss-common
+        ./autogen.sh
+        ./configure
+        make
+        sudo make install
+        sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        sudo cp common/*.h /usr/local/include/sonic-swss-common/common
+        sudo cp /usr/lib/x86_64-linux-gnu/libhiredis.* /usr/local/lib
+        popd
+
+        mkdir sonic_bmp
+        pushd sonic_bmp
+        git clone https://github.com/sonic-net/sonic-bmp.git
+        pushd sonic-bmp
+        git checkout $(BUILD_BRANCH)
+        mkdir build
+        pushd build
+        cmake -DENABLE_REDIS=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+        popd
+        popd
+
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-bmp.amd64.ubuntu20_04
+      displayName: "Archive sonic-bmp packages"
+
