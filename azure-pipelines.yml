@@ -63,47 +63,11 @@ jobs:
   pool:
     vmImage: 'ubuntu-20.04'
   container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-bookworm:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:master
 
 
   steps:
-    - checkout: sonic-swss-common
-      clean: true
-      submodules: recursive
-      displayName: 'Checkout sonic-swss-common'
-
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        source: specific
-        project: build
-        pipeline: 142
-        artifact: sonic-buildimage.vs
-        runVersion: 'latestFromBranch'
-        runBranch: 'refs/heads/$(BUILD_BRANCH)'
-        patterns: |
-            target/debs/bookworm/libyang*.deb
-            target/debs/bookworm/libnl*.deb
-            target/debs/bookworm/libswsscommon*.deb
-            target/debs/bookworm/python3-swsscommon*.deb
-      displayName: "Download bookworm debs"
-
-    - script: |
-        # LIBSWSSCOMMON
-        sudo apt-get -y purge libnl-3-dev libnl-route-3-dev
-        sudo dpkg -i ../target/debs/bookworm/libnl-3-200_*.deb
-        sudo dpkg -i ../target/debs/bookworm/libnl-genl-3-200_*.deb
-        sudo dpkg -i ../target/debs/bookworm/libnl-route-3-200_*.deb
-        sudo dpkg -i ../target/debs/bookworm/libnl-nf-3-200_*.deb
-      displayName: "Install libswsscommon dependencies"
-
-    - script: |
-        # LIBSWSSCOMMON
-        sudo dpkg -i ../target/debs/bookworm/libyang*1.0.73*.deb
-        sudo dpkg -i ../target/debs/bookworm/libswsscommon_1.0.0_amd64.deb
-        sudo dpkg -i ../target/debs/bookworm/libswsscommon-dev_1.0.0_amd64.deb
-        sudo dpkg -i ../target/debs/bookworm/python3-swsscommon_1.0.0_amd64.deb
-      displayName: 'Install libswsscommon package'
-
+    - checkout: none
     - script: |
         set -ex
         sudo apt-get update
