@@ -19,6 +19,14 @@ variables:
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
+resources:
+  repositories:
+  - repository: sonic-swss-common
+    type: github
+    name: sonic-net/sonic-swss-common
+    endpoint: sonic-net
+    ref: refs/heads/$(BUILD_BRANCH)
+
 parameters:
 - name: arch
   type: string
@@ -59,6 +67,27 @@ jobs:
 
 
   steps:
+    - checkout: sonic-swss-common
+      clean: true
+      submodules: recursive
+      displayName: 'Checkout sonic-swss-common'
+
+    - script: |
+        # LIBSWSSCOMMON
+        sudo apt-get -y purge libnl-3-dev libnl-route-3-dev
+        sudo dpkg -i ../target/debs/bookworm/libnl-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-genl-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-route-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-nf-3-200_*.deb
+      displayName: "Install libswsscommon dependencies"
+
+    - script: |
+        # LIBSWSSCOMMON
+        sudo dpkg -i ../target/debs/bookworm/libswsscommon_1.0.0_amd64.deb
+        sudo dpkg -i ../target/debs/bookworm/libswsscommon-dev_1.0.0_amd64.deb
+        sudo dpkg -i ../target/debs/bookworm/python3-swsscommon_1.0.0_amd64.deb
+      displayName: 'Install libswsscommon package'
+
     - checkout: none
     - script: |
         set -ex
@@ -83,6 +112,7 @@ jobs:
         sudo make install
         popd
 
+        # Sanity check
         mkdir original_bmp
         pushd original_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
@@ -96,6 +126,7 @@ jobs:
         popd
         popd
 
+        # sonic option
         mkdir sonic_bmp
         pushd sonic_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
