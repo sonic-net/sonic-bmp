@@ -63,7 +63,7 @@ jobs:
   pool:
     vmImage: 'ubuntu-20.04'
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:master
+    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-bookworm:latest
 
 
   steps:
