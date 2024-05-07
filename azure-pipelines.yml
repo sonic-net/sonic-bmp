@@ -72,6 +72,21 @@ jobs:
       submodules: recursive
       displayName: 'Checkout sonic-swss-common'
 
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        patterns: |
+            target/debs/bookworm/libyang*.deb
+            target/debs/bookworm/libnl*.deb
+            target/debs/bookworm/libswsscommon*.deb
+            target/debs/bookworm/python3-swsscommon*.deb
+      displayName: "Download bookworm debs"
+
     - script: |
         # LIBSWSSCOMMON
         sudo apt-get -y purge libnl-3-dev libnl-route-3-dev
@@ -88,7 +103,6 @@ jobs:
         sudo dpkg -i ../target/debs/bookworm/python3-swsscommon_1.0.0_amd64.deb
       displayName: 'Install libswsscommon package'
 
-    - checkout: none
     - script: |
         set -ex
         sudo apt-get update
