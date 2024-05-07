@@ -98,6 +98,7 @@ jobs:
 
     - script: |
         # LIBSWSSCOMMON
+        sudo dpkg -i ../target/debs/bookworm/libyang*1.0.73*.deb
         sudo dpkg -i ../target/debs/bookworm/libswsscommon_1.0.0_amd64.deb
         sudo dpkg -i ../target/debs/bookworm/libswsscommon-dev_1.0.0_amd64.deb
         sudo dpkg -i ../target/debs/bookworm/python3-swsscommon_1.0.0_amd64.deb
