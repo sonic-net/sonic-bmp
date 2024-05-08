@@ -15,6 +15,7 @@
 #include <sonic-swss-common/common/select.h>
 #include <sonic-swss-common/common/selectableevent.h>
 #include <sonic-swss-common/common/subscriberstatetable.h>
+#include <sonic-swss-common/common/configdb.h>
 
 #include <string>
 #include <list>

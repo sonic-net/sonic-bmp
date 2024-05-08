@@ -104,10 +104,10 @@ void RedisManager::ExitRedisManager() {
  *
  * \param [in] N/A
  */
-bool RedisManager::InitBMPConfig(const std::vector<std::string>& tables) {
-    auto connector = ConfigDBConnector_Native();
+bool RedisManager::InitBMPConfig() {
+    auto connector = swss::ConfigDBConnector_Native();
     connector.connect(false);
-    auto items = db.get_entry(BMP_CFG_DB_NAME, "table");
+    auto items = connector.get_entry(BMP_CFG_DB_NAME, "table");
     for (const auto& item : items) {
         if (item.second == "true") {
             enabledTables_.insert(item.first);

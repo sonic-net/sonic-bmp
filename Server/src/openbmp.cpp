@@ -426,10 +426,9 @@ void collector_update_msg(msgBus_kafka *kafka, Config &cfg,
     oc.timestamp_secs = tv.tv_sec;
     oc.timestamp_us = tv.tv_usec;
 
-#ifndef REDIS_ENABLED
     kafka->update_Collector(oc, code);
-#endif
 }
+#endif
 
 /**
  * Run Server loop
