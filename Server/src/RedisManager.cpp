@@ -78,11 +78,11 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
 
 
 /**
- * RemoveBMPTable
+ * RemoveEntityFromBMPTable
  *
  * \param [in] keys             Reference to various keys
  */
-bool RedisManager::RemoveBMPTable(const std::vector<std::string>& keys) {
+bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys) {
 
     stateDb_.del(keys);
     return true;

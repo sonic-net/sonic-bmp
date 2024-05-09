@@ -97,12 +97,14 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
     string neigh = peer.peer_addr;
 
     for (size_t i = 0; i < rib.size(); i++) {
+        // rib table schema as BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59
         vector<string> keys;
         string redisMgr_pfx = rib[i].prefix;
         redisMgr_pfx += "/";
         redisMgr_pfx += to_string(rib[i].prefix_len);
         keys.reserve(MAX_ATTRIBUTES_COUNT);
         keys.emplace_back(redisMgr_pfx);
+        keys.emplace_back(peer.peer_addr);
 
         switch (code) {
 
@@ -118,9 +120,6 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
                 addFieldValues.emplace_back(make_pair("ext_community_list", attr->ext_community_list));
                 addFieldValues.emplace_back(make_pair("large_community_list", attr->large_community_list));
                 addFieldValues.emplace_back(make_pair("originator_id", attr->originator_id));
-
-                keys.emplace_back(BMP_TABLE_NEI_PREFIX);
-                keys.emplace_back(peer.peer_addr);
 
                 if(peer.isAdjIn)
                 {
@@ -147,7 +146,6 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
                 com_key += redisMgr_.GetKeySeparator();
                 com_key += redisMgr_pfx;
                 com_key += redisMgr_.GetKeySeparator();
-                com_key += BMP_TABLE_NEI_PREFIX;
                 com_key += neigh;
                 del_keys.push_back(com_key);
             }
@@ -156,7 +154,7 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
     }
 
     if (!del_keys.empty()) {
-        redisMgr_.RemoveBMPTable(del_keys);
+        redisMgr_.RemoveEntityFromBMPTable(del_keys);
     }
 }
 
