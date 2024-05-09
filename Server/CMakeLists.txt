@@ -74,7 +74,7 @@ else ()
 
     find_library(LIBHIREDIS_LIBRARY
             NAMES
-            libhiredis.a hiredis
+            hiredis
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -83,7 +83,7 @@ else ()
 
     find_library(LIBSWSSCOMMON_LIBRARY
             NAMES
-            libswsscommon.a libswsscommon
+            swsscommon
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -100,13 +100,7 @@ find_library(LIBRT_LIBRARY
         lib64
         lib)
 
-if (NOT ENABLE_REDIS)
-    if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
-        Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
-    else ()
-        Message ("lib = " ${LIBRDKAFKA_LIBRARY})
-    endif()
-else ()
+if (ENABLE_REDIS)
     if (NOT LIBHIREDIS_LIBRARY)
         Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
     else ()
@@ -116,6 +110,12 @@ else ()
         Message (FATAL_ERROR "swsscommon was not found, cannot proceed.  Visit https://github.com/sonic-net/sonic-swss-common for details on how to install it.")
     else ()
         Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
+    endif()
+else ()
+    if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
+        Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
+    else ()
+        Message ("lib = " ${LIBRDKAFKA_LIBRARY})
     endif()
 endif()
 
@@ -193,7 +193,7 @@ endif()
 if (NOT ENABLE_REDIS)
     set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
 else ()
-    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBHIREDIS_LIBRARY} ${LIBSWSSCOMMON_LIBRARY} z ${SSL_LIBS} dl)
+    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} z ${SSL_LIBS} dl)
 endif ()
 
 # Set the binary

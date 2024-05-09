@@ -20,10 +20,6 @@
 #include <arpa/inet.h>
 #include "bgp_common.h"
 
-#ifdef REDIS_ENABLED
-#include "RedisManager.h"
-#endif
-
 /**
  * Constructor for class
  *

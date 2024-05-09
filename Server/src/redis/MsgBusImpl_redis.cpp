@@ -43,7 +43,7 @@ MsgBusImpl_redis::~MsgBusImpl_redis() {
  * \param [in] N/A
  */
 void MsgBusImpl_redis::ResetAllTables() {
-    redisMgr_.ResetBMPTable(enabledTable);
+    redisMgr_.ResetAllTables();
 }
 
 /**
@@ -171,9 +171,6 @@ void MsgBusImpl_redis::update_Collector(obj_collector &c_object, collector_actio
  * Abstract method Implementation - See MsgBusInterface.hpp for details
  */
 void MsgBusImpl_redis::update_Router(obj_router &r_object, router_action_code code) {
-    if (code == ROUTER_ACTION_INIT) {
-        redisMgr_.ResetAllTables();
-    }
 }
 
 
