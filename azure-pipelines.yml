@@ -1,4 +1,31 @@
-trigger: none
+trigger:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+pr:
+  branches:
+    include:
+    - master
+    - 202???
+    - 201???
+
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.TargetBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
+
+resources:
+  repositories:
+  - repository: sonic-swss-common
+    type: github
+    name: sonic-net/sonic-swss-common
+    endpoint: sonic-net
+    ref: refs/heads/$(BUILD_BRANCH)
 
 parameters:
 - name: arch
@@ -64,15 +91,34 @@ jobs:
         sudo make install
         popd
 
+        # Sanity check
+        mkdir original_bmp
+        pushd original_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
         pushd sonic-bmp
-        git checkout $(Build.SourceBranchName)
+        git checkout $(BUILD_BRANCH)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
         make
         popd
         popd
+        popd
+
+        # sonic option
+        mkdir sonic_bmp
+        pushd sonic_bmp
+        git clone https://github.com/sonic-net/sonic-bmp.git
+        pushd sonic-bmp
+        git checkout $(BUILD_BRANCH)
+        mkdir build
+        pushd build
+        cmake -DENABLE_REDIS=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+        popd
+        popd
+
     - publish: $(System.DefaultWorkingDirectory)/
       artifact: sonic-bmp.amd64.ubuntu20_04
       displayName: "Archive sonic-bmp packages"
