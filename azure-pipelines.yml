@@ -100,8 +100,8 @@ jobs:
         popd
       displayName: 'Install dependencies'
 
-
     - script: |
+        # Sanity check
         mkdir original_bmp
         pushd original_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
@@ -143,6 +143,9 @@ jobs:
 
         mkdir new_bmp
         pushd new_bmp
+        # sonic option
+        mkdir sonic_bmp
+        pushd sonic_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
         pushd sonic-bmp
         git checkout $(BUILD_BRANCH)
