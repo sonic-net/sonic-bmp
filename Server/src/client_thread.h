@@ -10,7 +10,13 @@
 #ifndef CLIENT_THREAD_H_
 #define CLIENT_THREAD_H_
 
+#ifndef REDIS_ENABLED
 #include "MsgBusImpl_kafka.h"
+#else
+#include "redis/MsgBusImpl_redis.h"
+#include <memory>
+#endif
+
 #include "BMPListener.h"
 #include "Logger.h"
 #include "Config.h"
@@ -28,7 +34,11 @@ struct ThreadMgmt {
 };
 
 struct ClientThreadInfo {
+#ifndef REDIS_ENABLED
     msgBus_kafka *mbus;
+#else
+    std::shared_ptr<MsgBusImpl_redis> redis;
+#endif
     BMPListener::ClientInfo *client;
     Logger *log;
 

@@ -350,24 +350,30 @@ void parseBGP::UpdateDB(bgp_msg::UpdateMsg::parsed_update_data &parsed_data) {
     /*
      * Update the path attributes
      */
+    #ifndef REDIS_ENABLED
     UpdateDBAttrs(parsed_data.attrs);
+    #endif
 
     /*
      * Update the bgp-ls data
      */
+    #ifndef REDIS_ENABLED
     UpdateDbBgpLs(false, parsed_data.ls, parsed_data.ls_attrs);
     UpdateDbBgpLs(true, parsed_data.ls_withdrawn, parsed_data.ls_attrs);
+    #endif
 
     /*
      * Update the advertised prefixes (both ipv4 and ipv6)
      */
     UpdateDBAdvPrefixes(parsed_data.advertised, parsed_data.attrs);
 
+    #ifndef REDIS_ENABLED
     UpdateDBL3Vpn(false,parsed_data.vpn, parsed_data.attrs);
     UpdateDBL3Vpn(true,parsed_data.vpn_withdrawn, parsed_data.attrs);
 
     UpdateDBeVPN(false, parsed_data.evpn, parsed_data.attrs);
     UpdateDBeVPN(true, parsed_data.evpn_withdrawn, parsed_data.attrs);
+    #endif
 
     /*
      * Update withdraws (both ipv4 and ipv6)
