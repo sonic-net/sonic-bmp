@@ -27,7 +27,7 @@
 /**
  * BMP_TABLE_* defines the default table name prefix
  */
-#define BMP_DB_NAME                "STATE_DB"
+#define BMP_DB_NAME                "BMP_STATE_DB"
 #define BMP_TABLE_NEI              "BGP_NEIGHBOR_TABLE"
 #define BMP_TABLE_RIB_IN           "BGP_RIB_IN_TABLE"
 #define BMP_TABLE_RIB_OUT          "BGP_RIB_OUT_TABLE"
