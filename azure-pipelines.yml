@@ -88,7 +88,8 @@ jobs:
         libboost-dev \
         cmake \
         zlib1g-dev \
-        libsasl2-2
+        libsasl2-2 \
+        libzstd-dev
 
         git clone https://github.com/jbeder/yaml-cpp.git
         cd yaml-cpp
