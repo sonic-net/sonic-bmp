@@ -66,7 +66,7 @@ if (NOT ENABLE_REDIS)
             lib)
 else ()
     find_path(LIBSWSSCOMMON_INCLUDE_DIR
-            sonic-swss-common/common/dbconnector.h
+            swss/dbconnector.h
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
