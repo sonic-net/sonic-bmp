@@ -39,7 +39,8 @@ parameters:
 
 - name: sonic_slave
   type: string
-  default: sonic-slave-bullseye
+  default: sonic-slave-bookworm
+
 
 schedules:
 - cron: "0 0 * * *"
@@ -55,8 +56,7 @@ jobs:
   pool:
     vmImage: 'ubuntu-20.04'
   container:
-    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:master
-
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
     - checkout: self
@@ -65,8 +65,6 @@ jobs:
       displayName: 'Checkout code'
 
     - script: |
-        ls $(Build.SourceBranchName)
-        ls $(System.PullRequest.TargetBranch)
         sudo apt-get update
         sudo apt-get install -qq -y \
         libhiredis-dev \
@@ -76,11 +74,15 @@ jobs:
         libnl-nf-3-dev \
         swig
 
-        sudo apt-get install libsasl2-dev
-        sudo apt-get install libcurl4-openssl-dev
-        sudo apt-get install libssl-dev
-        sudo apt-get install libssl1.0.0
-        sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2
+        sudo apt-get install -y libsasl2-dev \
+        libcurl4-openssl-dev \
+        libssl-dev \
+        gcc \
+        g++ \
+        libboost-dev \
+        cmake \
+        zlib1g-dev \
+        libsasl2-2
 
         git clone https://github.com/jbeder/yaml-cpp.git
         cd yaml-cpp
@@ -98,10 +100,9 @@ jobs:
         make
         sudo make install
         popd
-      displayName: 'Install dependencies'
+      displayName: 'Install openbmp dependencies'
 
     - script: |
-        # Sanity check
         mkdir original_bmp
         pushd original_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
@@ -116,48 +117,70 @@ jobs:
         popd
       displayName: 'Build original openbmp for sanity check'
 
-    - script: |
-        git clone https://github.com/sonic-net/sonic-swss-common.git
-        sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
-                    libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
-                    libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
-                    libgtest-dev libgmock-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
-        sudo apt-get install -y redis-server redis-tools
-        sudo apt-get install -y python3-pip
-        sudo pip3 install pytest
-        sudo apt-get install -y python
-        sudo apt-get install -y libyang-dev
-        ARCH=$(dpkg --print-architecture)
-        set -x
-        sudo curl -fsSL -o /usr/local/bin/bazel \
-            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
-        sudo chmod 755 /usr/local/bin/bazel
-        cd sonic-swss-common
-        ./autogen.sh
-        ./configure
-        make
-        sudo make install
-        sudo mkdir -p /usr/local/include/sonic-swss-common/common
-        sudo cp common/*.h /usr/local/include/sonic-swss-common/common
-        popd
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        patterns: |
+            target/debs/bookworm/libyang*.deb
+            target/debs/bookworm/libnl*.deb
+            target/python-wheels/bookworm/sonic_yang_models*.whl
+      displayName: "Download bookworm debs"
 
-        mkdir new_bmp
-        pushd new_bmp
-        # sonic option
-        mkdir sonic_bmp
-        pushd sonic_bmp
+    - script: |
+        # LIBSWSSCOMMON
+        sudo apt-get -y purge libnl-3-dev libnl-route-3-dev
+        sudo dpkg -i ../target/debs/bookworm/libnl-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-genl-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-route-3-200_*.deb
+        sudo dpkg -i ../target/debs/bookworm/libnl-nf-3-200_*.deb
+        # LIBYANG
+        sudo dpkg -i ../target/debs/bookworm/libyang*1.0.73*.deb
+        # SONIC YANGS
+        set -ex
+        sudo pip3 install ../target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl
+      displayName: "Install libswsscommon dependencies"
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: Azure.sonic-swss-common
+        artifact: sonic-swss-common-bookworm
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+      displayName: "Download sonic-swss-common"
+
+    - script: |
+        set -ex
+        # LIBSWSSCOMMON
+        sudo dpkg -i libswsscommon_1.0.0_amd64.deb
+        sudo dpkg -i libswsscommon-dev_1.0.0_amd64.deb
+        sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
+        sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        sudo cp /usr/include/swss/*.h /usr/local/include/sonic-swss-common/common
+      workingDirectory: $(Pipeline.Workspace)/
+      displayName: 'Install libswsscommon package'
+
+
+    - script: |
+        sudo dpkg -l|grep swsscommon
+        mkdir new_sonic_bmp
+        pushd new_sonic_bmp
         git clone https://github.com/sonic-net/sonic-bmp.git
-        pushd sonic-bmp
-        git checkout $(BUILD_BRANCH)
+        cd sonic-bmp
+        git checkout  $(BUILD_BRANCH)
         mkdir build
-        pushd build
-        cmake -DENABLE_REDIS=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        cd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
         make
-        popd
-        popd
+
       displayName: 'Build sonic-bmp'
 
     - publish: $(System.DefaultWorkingDirectory)/
       artifact: sonic-bmp.amd64.ubuntu20_04
       displayName: "Archive sonic-bmp packages"
-
