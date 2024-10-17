@@ -107,7 +107,7 @@ void RedisManager::ExitRedisManager() {
 bool RedisManager::InitBMPConfig() {
     auto connector = swss::ConfigDBConnector_Native();
     connector.connect(false);
-    auto items = connector.get_entry(BMP_CFG_DB_NAME, "table");
+    auto items = connector.get_entry(BMP_CFG_TABLE_NAME, "table");
     for (const auto& item : items) {
         if (item.second == "true") {
             enabledTables_.insert(item.first);

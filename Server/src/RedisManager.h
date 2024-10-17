@@ -10,9 +10,9 @@
 #ifndef REDISMANAGER_H_
 #define REDISMANAGER_H_
 
-//#include <sonic-swss-common/common/dbconnector.h>
-//#include <sonic-swss-common/common/table.h>
-//#include <sonic-swss-common/common/configdb.h>
+#include <sonic-swss-common/common/dbconnector.h>
+#include <sonic-swss-common/common/table.h>
+#include <sonic-swss-common/common/configdb.h>
 
 #include <string>
 #include <list>
@@ -37,7 +37,7 @@
 /**
  * BMP_CFG_TABLE_* defines config db tables.
  */
-#define BMP_CFG_DB_NAME            "BMP"
+#define BMP_CFG_TABLE_NAME         "BMP"
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
 #define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
 #define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
