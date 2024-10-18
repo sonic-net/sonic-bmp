@@ -25,6 +25,19 @@ variables:
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
+resources:
+  repositories:
+  - repository: original_bmp
+    type: github
+    name: sonic-net/sonic-bmp
+    endpoint: sonic-net
+    ref: refs/heads/$(CHECKOUT_BRANCH)
+  - repository: new_sonic_bmp
+    type: github
+    name: sonic-net/sonic-bmp
+    endpoint: sonic-net
+    ref: refs/heads/$(CHECKOUT_BRANCH)
+
 parameters:
 - name: arch
   type: string
@@ -110,11 +123,7 @@ jobs:
       displayName: 'Install openbmp dependencies'
 
     - script: |
-        mkdir original_bmp
         pushd original_bmp
-        git clone https://github.com/sonic-net/sonic-bmp.git
-        pushd sonic-bmp
-        git checkout $(CHECKOUT_BRANCH)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
@@ -173,12 +182,7 @@ jobs:
 
 
     - script: |
-        sudo dpkg -l|grep swsscommon
-        mkdir new_sonic_bmp
         pushd new_sonic_bmp
-        git clone https://github.com/sonic-net/sonic-bmp.git
-        cd sonic-bmp
-        git checkout  $(CHECKOUT_BRANCH)
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
