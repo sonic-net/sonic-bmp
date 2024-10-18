@@ -31,12 +31,12 @@ resources:
     type: github
     name: sonic-net/sonic-bmp
     endpoint: sonic-net
-    ref: refs/heads/$(CHECKOUT_BRANCH)
+    ref: refs/heads/$(BUILD_BRANCH)
   - repository: new_sonic_bmp
     type: github
     name: sonic-net/sonic-bmp
     endpoint: sonic-net
-    ref: refs/heads/$(CHECKOUT_BRANCH)
+    ref: refs/heads/$(BUILD_BRANCH)
 
 parameters:
 - name: arch
