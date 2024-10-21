@@ -90,13 +90,14 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
     if (attr == NULL)
         return;
 
-    // Loop through the vector array of rib entries
-    vector<swss::FieldValueTuple> addFieldValues;
-    addFieldValues.reserve(MAX_ATTRIBUTES_COUNT);
     vector<string> del_keys;
     string neigh = peer.peer_addr;
 
     for (size_t i = 0; i < rib.size(); i++) {
+        // Loop through the vector array of rib entries
+        vector<swss::FieldValueTuple> addFieldValues;
+        addFieldValues.reserve(MAX_ATTRIBUTES_COUNT);
+
         // rib table schema as BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59
         vector<string> keys;
         string redisMgr_pfx = rib[i].prefix;

@@ -25,19 +25,6 @@ variables:
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
-resources:
-  repositories:
-  - repository: original_bmp
-    type: github
-    name: sonic-net/sonic-bmp
-    endpoint: sonic-net
-    ref: refs/heads/$(BUILD_BRANCH)
-  - repository: new_sonic_bmp
-    type: github
-    name: sonic-net/sonic-bmp
-    endpoint: sonic-net
-    ref: refs/heads/$(BUILD_BRANCH)
-
 parameters:
 - name: arch
   type: string
@@ -78,11 +65,6 @@ jobs:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
-    - checkout: self
-      clean: true
-      submodules: recursive
-      displayName: 'Checkout code'
-
     - script: |
         sudo apt-get update
         sudo apt-get install -qq -y \
@@ -122,16 +104,10 @@ jobs:
         popd
       displayName: 'Install openbmp dependencies'
 
-    - script: |
-        pushd original_bmp
-        mkdir build
-        pushd build
-        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
-        make
-        popd
-        popd
-        popd
-      displayName: 'Build original openbmp for sanity check'
+    - checkout: self
+      clean: true
+      submodules: recursive
+      displayName: 'Checkout code'
 
     - task: DownloadPipelineArtifact@2
       inputs:
@@ -180,14 +156,22 @@ jobs:
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
 
+    - script: |
+        ls -alh
+        git branch
+        mkdir build
+        pushd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+      displayName: 'Build original openbmp for sanity check'
 
     - script: |
-        pushd new_sonic_bmp
+        rm -rf build/
         mkdir build
-        cd build
+        pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
         make
-
       displayName: 'Build sonic-bmp'
 
     - publish: $(System.DefaultWorkingDirectory)/
