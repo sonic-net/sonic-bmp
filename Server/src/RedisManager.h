@@ -22,6 +22,7 @@
 #include <functional>
 #include <vector>
 #include "Logger.h"
+#include "Config.h"
 
 
 /**
