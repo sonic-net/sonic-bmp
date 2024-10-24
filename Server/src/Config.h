@@ -153,6 +153,15 @@ private:
      */
     void parseKafka(const YAML::Node &node);
 
+#ifdef REDIS_ENABLED
+    /**
+     * Parse the redis configuration
+     *
+     * \param [in] node     Reference to the yaml NODE
+     */
+    void parseRedis(const YAML::Node &node);
+#endif
+
     /**
      * Parse the kafka topics configuration
      *
