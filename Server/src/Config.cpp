@@ -38,7 +38,7 @@ Config::Config() {
     debug_bmp           = false;
     debug_msgbus        = false;
 #ifdef REDIS_ENABLED
-    multi_asic          = false;
+    redis_multiAsic     = false;
 #endif
     bmp_buffer_size     = 15 * 1024 * 1024; // 15MB
     svr_ipv6            = false;
