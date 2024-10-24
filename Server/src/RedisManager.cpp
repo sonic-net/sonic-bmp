@@ -31,9 +31,8 @@ RedisManager::~RedisManager() {
  * \param [in] cfgPtr     config pointer
  ***********************************************************************/
 void RedisManager::Setup(Logger *logPtr, Config *cfgPtr) {
-    logger_ = logPtr;
-    config_ = cfgPtr;
-    if (!cfg->redis_multiAsic) {
+    logger = logPtr;
+    if (!cfgPtr->redis_multiAsic) {
         if (!swss::SonicDBConfig::isInit()) {
             swss::SonicDBConfig::initialize();
         }

@@ -22,6 +22,7 @@
 #include <functional>
 #include <vector>
 #include "Logger.h"
+#include "Config.h"
 
 
 /**
@@ -126,8 +127,7 @@ public:
 private:
     swss::DBConnector stateDb_;
     std::string separator_;
-    Logger *logger_;
-    Config      *cfg_;                       ///< Config pointer
+    Logger *logger;
     std::unordered_set<std::string> enabledTables_;
     bool exit_;
 };
