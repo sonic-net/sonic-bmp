@@ -66,9 +66,9 @@ public:
      * Setup logger for this class
      *
      * \param [in] logPtr     logger pointer
-     * \param [in] client     client pointer
+     * \param [in] cfgPtr     config pointer
      ***********************************************************************/
-    void Setup(Logger *logPtr);
+    void Setup(Logger *logPtr, Config *cfgPtr);
 
 
     /**
@@ -126,7 +126,8 @@ public:
 private:
     swss::DBConnector stateDb_;
     std::string separator_;
-    Logger *logger;
+    Logger *logger_;
+    Config      *cfg_;                       ///< Config pointer
     std::unordered_set<std::string> enabledTables_;
     bool exit_;
 };

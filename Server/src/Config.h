@@ -46,6 +46,9 @@ public:
     bool        debug_bgp;
     bool        debug_bmp;
     bool        debug_msgbus;
+#ifdef REDIS_ENABLED
+    bool        redis_multiAsic;
+#endif
 
     int         heartbeat_interval;      ///< Heartbeat interval in seconds for collector updates
     int   	tx_max_bytes;            ///< Maximum transmit message size

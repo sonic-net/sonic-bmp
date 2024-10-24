@@ -14,9 +14,6 @@
  * Constructor for class
  ***********************************************************************/
 RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
-    swss::SonicDBConfig::initialize();
-    swss::SonicDBConfig::initializeGlobalConfig();
-    separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
     exit_ = false;
 }
 
@@ -28,12 +25,20 @@ RedisManager::~RedisManager() {
 
 
 /*********************************************************************
- * Setup logger for this class
+ * Setup for this class
  *
  * \param [in] logPtr     logger pointer
+ * \param [in] cfgPtr     config pointer
  ***********************************************************************/
-void RedisManager::Setup(Logger *logPtr) {
-    logger = logPtr;
+void RedisManager::Setup(Logger *logPtr, Config *cfgPtr) {
+    logger_ = logPtr;
+    config_ = cfgPtr;
+    if (!cfg->redis_multiAsic) {
+        swss::SonicDBConfig::initialize();
+    } else {
+        swss::SonicDBConfig::initializeGlobalConfig();
+    }
+    separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 }
 
 
