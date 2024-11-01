@@ -13,7 +13,7 @@
 /*********************************************************************//**
  * Constructor for class
  ***********************************************************************/
-RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
+RedisManager::RedisManager() {
     exit_ = false;
 }
 
@@ -41,6 +41,7 @@ void RedisManager::Setup(Logger *logPtr, Config *cfgPtr) {
             swss::SonicDBConfig::initializeGlobalConfig();
         }
     }
+    stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
     separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 }
 
@@ -69,8 +70,7 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
         LOG_INFO("RedisManager %s is disabled", table.c_str());
         return false;
     }
-
-    swss::Table stateBMPTable(&stateDb_, table);
+    std::unique_ptr<swss::Table> stateBMPTable = std::unique_ptr<Table>(new Table(stateDb_.get(), table));
     std::string fullKey;
     for (const auto& key : keys) {
         fullKey += key;
@@ -78,9 +78,9 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
     }
     fullKey.erase(fullKey.size() - 1);
 
-    LOG_INFO("RedisManager WriteBMPTable key = %s", fullKey.c_str());
+    SELF_DEBUG("RedisManager WriteBMPTable key = %s", fullKey.c_str());
 
-    stateBMPTable.set(fullKey, fieldValues);
+    stateBMPTable->set(fullKey, fieldValues);
     return true;
 }
 
@@ -92,7 +92,7 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
  */
 bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys) {
 
-    stateDb_.del(keys);
+    stateDb_->del(keys);
     return true;
 }
 
@@ -113,10 +113,13 @@ void RedisManager::ExitRedisManager() {
  * \param [in] N/A
  */
 bool RedisManager::InitBMPConfig() {
-    auto connector = swss::ConfigDBConnector_Native();
-    connector.connect(false);
-    auto items = connector.get_entry(BMP_CFG_TABLE_NAME, "table");
-    for (const auto& item : items) {
+    std::shared_ptr<swss::DBConnector> cfgDb =
+        std::make_shared<swss::DBConnector>("CONFIG_DB", 0, false);
+    std::unique_ptr<swss::Table> cfgTable =
+        std::unique_ptr<swss::Table>(new swss::Table(cfgDb.get(), BMP_CFG_TABLE_NAME));
+    std::vector<FieldValueTuple> fvt;
+    cfgTable.get(BMP_CFG_TABLE_KEY, fvt);
+    for (const auto& item : fvt) {
         if (item.second == "true") {
             enabledTables_.insert(item.first);
         }
@@ -133,10 +136,10 @@ bool RedisManager::InitBMPConfig() {
 bool RedisManager::ResetBMPTable(const std::string & table) {
 
     LOG_INFO("RedisManager ResetBMPTable %s", table.c_str());
-    swss::Table stateBMPTable(&stateDb_, table);
+    std::unique_ptr<swss::Table> stateBMPTable = std::unique_ptr<Table>(new Table(stateDb_.get(), table));
     std::vector<std::string> keys;
-    stateBMPTable.getKeys(keys);
-    stateDb_.del(keys);
+    stateBMPTable->getKeys(keys);
+    stateDb_->del(keys);
 
     return true;
 }
