@@ -70,13 +70,13 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
         LOG_INFO("RedisManager %s is disabled", table.c_str());
         return false;
     }
-    std::unique_ptr<swss::Table> stateBMPTable = std::unique_ptr<swss::Table>(new swss::Table(stateDb_.get(), table));
-    std::string fullKey;
+    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
+    std::ostringstream oss;
     for (const auto& key : keys) {
-        fullKey += key;
-        fullKey += separator_;
+        oss << key << separator_;
     }
-    fullKey.erase(fullKey.size() - 1);
+    std::string fullKey = oss.str();
+    fullKey.pop_back();
 
     DEBUG("RedisManager WriteBMPTable key = %s", fullKey.c_str());
 
@@ -92,6 +92,9 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
  */
 bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys) {
 
+    for (const auto& key : keys) {
+        DEBUG("RedisManager RemoveEntityFromBMPTable key = %s", key.c_str());
+    }
     stateDb_->del(keys);
     return true;
 }
@@ -115,8 +118,7 @@ void RedisManager::ExitRedisManager() {
 bool RedisManager::InitBMPConfig() {
     std::shared_ptr<swss::DBConnector> cfgDb =
         std::make_shared<swss::DBConnector>("CONFIG_DB", 0, false);
-    std::unique_ptr<swss::Table> cfgTable =
-        std::unique_ptr<swss::Table>(new swss::Table(cfgDb.get(), BMP_CFG_TABLE_NAME));
+    std::unique_ptr<swss::Table> cfgTable = std::make_unique<swss::Table>(cfgDb.get(), BMP_CFG_TABLE_NAME);
     std::vector<swss::FieldValueTuple> fvt;
     cfgTable->get(BMP_CFG_TABLE_KEY, fvt);
     for (const auto& item : fvt) {
@@ -133,15 +135,13 @@ bool RedisManager::InitBMPConfig() {
  *
  * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
  */
-bool RedisManager::ResetBMPTable(const std::string & table) {
+void RedisManager::ResetBMPTable(const std::string & table) {
 
     LOG_INFO("RedisManager ResetBMPTable %s", table.c_str());
-    std::unique_ptr<swss::Table> stateBMPTable = std::unique_ptr<swss::Table>(new swss::Table(stateDb_.get(), table));
+    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
     std::vector<std::string> keys;
     stateBMPTable->getKeys(keys);
     stateDb_->del(keys);
-
-    return true;
 }
 
 

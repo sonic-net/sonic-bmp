@@ -173,19 +173,19 @@ endif ()
 # Disable warnings
 add_definitions ("-Wno-unused-result")
 
-# Add C++11
+# Add C++14
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
     include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag(--std=c++11 SUPPORTS_STD_CXX11)
+    check_cxx_compiler_flag(--std=c++14 SUPPORTS_STD_CXX14)
     check_cxx_compiler_flag(--std=c++0x SUPPORTS_STD_CXX01)
-    if(SUPPORTS_STD_CXX11)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --std=c++11")
+    if(SUPPORTS_STD_CXX14)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++14")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --std=c++14")
     elseif(SUPPORTS_STD_CXX01)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++0x")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --std=c++0x")
     else()
-        message(ERROR "Compiler does not support --std=c++11 or --std=c++0x. Upgrade gcc 4.7 or greater")
+        message(ERROR "Compiler does not support --std=c++14 or --std=c++0x. Upgrade gcc 4.7 or greater")
     endif()
 endif()
 

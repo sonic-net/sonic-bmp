@@ -21,6 +21,7 @@
 #include <unordered_set>
 #include <functional>
 #include <vector>
+#include <sstream>
 #include "Logger.h"
 #include "Config.h"
 
@@ -92,7 +93,7 @@ public:
      *
      * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
      */
-    bool ResetBMPTable(const std::string & table);
+    void ResetBMPTable(const std::string & table);
 
     /**
      * WriteBMPTable
