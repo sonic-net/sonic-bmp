@@ -191,7 +191,7 @@ endif()
 
 # Set the libs to link
 if (NOT ENABLE_REDIS)
-    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
+    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl zstd)
 else ()
     set (LIBS pthread ${LIBYAML_CPP_LIBRARY} z ${SSL_LIBS} dl)
 endif ()
