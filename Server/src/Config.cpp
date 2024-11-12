@@ -37,9 +37,6 @@ Config::Config() {
     debug_bgp           = false;
     debug_bmp           = false;
     debug_msgbus        = false;
-#ifdef REDIS_ENABLED
-    redis_multiAsic     = false;
-#endif
     bmp_buffer_size     = 15 * 1024 * 1024; // 15MB
     svr_ipv6            = false;
     svr_ipv4            = true;
@@ -112,10 +109,6 @@ void Config::load(const char *cfg_filename) {
                         parseDebug(node);
                     else if (key.compare("kafka") == 0)
                         parseKafka(node);
-#ifdef REDIS_ENABLED
-                    else if (key.compare("redis") == 0)
-                        parseRedis(node);
-#endif
                     else if (key.compare("mapping") == 0)
                         parseMapping(node);
 
@@ -590,26 +583,7 @@ void Config::parseKafka(const YAML::Node &node) {
     }
 }
 
-#ifdef REDIS_ENABLED
-/**
- * Parse the Redis configuration
- *
- * \param [in] node     Reference to the yaml NODE
- */
-void Config::parseRedis(const YAML::Node &node) {
-    if (!redis_multiAsic and node["multiAsic"]) {
-        try {
-            redis_multiAsic = node["multiAsic"].as<bool>();
 
-            if (redis_multiAsic)
-                std::cout << "   Config: redis multiAsic : " << redis_multiAsic << std::endl;
-
-        } catch (YAML::TypedBadConversion<bool> err) {
-            printWarning("redis.multiAsic is not of type boolean", node["multiAsic"]);
-        }
-    }
-}
-#endif
 
 /**
  * Parse the kafka topics configuration

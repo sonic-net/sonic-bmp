@@ -46,9 +46,6 @@ public:
     bool        debug_bgp;
     bool        debug_bmp;
     bool        debug_msgbus;
-#ifdef REDIS_ENABLED
-    bool        redis_multiAsic;
-#endif
 
     int         heartbeat_interval;      ///< Heartbeat interval in seconds for collector updates
     int   	tx_max_bytes;            ///< Maximum transmit message size
@@ -152,15 +149,6 @@ private:
      * \param [in] node     Reference to the yaml NODE
      */
     void parseKafka(const YAML::Node &node);
-
-#ifdef REDIS_ENABLED
-    /**
-     * Parse the redis configuration
-     *
-     * \param [in] node     Reference to the yaml NODE
-     */
-    void parseRedis(const YAML::Node &node);
-#endif
 
     /**
      * Parse the kafka topics configuration
