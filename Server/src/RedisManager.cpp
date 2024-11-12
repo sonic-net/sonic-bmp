@@ -28,19 +28,13 @@ RedisManager::~RedisManager() {
  * Setup for this class
  *
  * \param [in] logPtr     logger pointer
- * \param [in] cfgPtr     config pointer
  ***********************************************************************/
-void RedisManager::Setup(Logger *logPtr, Config *cfgPtr) {
+void RedisManager::Setup(Logger *logPtr) {
     logger = logPtr;
-    if (!cfgPtr->redis_multiAsic) {
-        if (!swss::SonicDBConfig::isInit()) {
-            swss::SonicDBConfig::initialize();
-        }
-    } else {
-        if (!swss::SonicDBConfig::isGlobalInit()) {
-            swss::SonicDBConfig::initializeGlobalConfig();
-        }
+    if (!swss::SonicDBConfig::isInit()) {
+        swss::SonicDBConfig::initialize();
     }
+
     stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
     separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 }

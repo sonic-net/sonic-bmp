@@ -26,7 +26,7 @@ using namespace std;
 MsgBusImpl_redis::MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client) {
     logger = logPtr;
     this->cfg = cfg;
-    redisMgr_.Setup(logPtr, cfg);
+    redisMgr_.Setup(logPtr);
     redisMgr_.InitBMPConfig();
 }
 

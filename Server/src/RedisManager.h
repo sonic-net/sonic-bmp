@@ -69,9 +69,8 @@ public:
      * Setup logger for this class
      *
      * \param [in] logPtr     logger pointer
-     * \param [in] cfgPtr     config pointer
-     ***********************************************************************/
-    void Setup(Logger *logPtr, Config *cfgPtr);
+     */
+    void Setup(Logger *logPtr);
 
 
     /**
