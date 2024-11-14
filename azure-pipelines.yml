@@ -174,6 +174,18 @@ jobs:
         make
       displayName: 'Build sonic-bmp'
 
-    - publish: $(System.DefaultWorkingDirectory)/
-      artifact: sonic-bmp.amd64.ubuntu20_04
-      displayName: "Archive sonic-bmp packages"
+    - script: |
+        set -ex
+        ls -Rl
+        cp Server/openbmpd.conf build/Server/openbmpd.conf
+        rm -rf deb_package/
+        rm -rf Server/
+        rm -rf CMakeLists.txt
+        NO_TEST_BINS=1 dpkg-buildpackage -rfakeroot -b -us -uc
+        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb $(Build.ArtifactStagingDirectory)/
+        ls -Rl
+      displayName: "Build Debian Package"
+
+    - publish: $(Build.ArtifactStagingDirectory)/
+      artifact: sonic-bmp
+      displayName: "Archive sonic-bmp artifacts"

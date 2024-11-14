@@ -1,0 +1,11 @@
+Source: sonic-bmp
+Section: devel
+Priority: optional
+Maintainer: Feng Pan <fenpan@microsoft.com>
+Build-Depends: debhelper (>= 8.0.0),
+Homepage: https://github.com/sonic-net/sonic-bmp
+
+Package: sonic-bmp
+Version: 0.1
+Architecture: amd64
+Description: SONiC OpenBMP
