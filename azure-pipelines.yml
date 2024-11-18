@@ -157,6 +157,7 @@ jobs:
       displayName: 'Install libswsscommon package'
 
     - script: |
+        rm Makefile
         ls -alh
         git branch
         mkdir build
