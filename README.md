@@ -1,3 +1,7 @@
+*sonic-bmp builds:*
+
+[![master build](https://dev.azure.com/mssonic/build/_apis/build/status/Azure.sonic-bmp?branchName=master&label=master)](https://dev.azure.com/mssonic/build/_build?definitionId=1565)
+
 Open BGP Monitoring Protocol (OpenBMP) Collection Framework
 ===========================================================
 ![Build Status](http://build-jenkins.openbmp.org/buildStatus/icon?job=openbmp-server-ubuntu-trusty)
