@@ -42,8 +42,8 @@
 #define BMP_CFG_TABLE_NAME         "BMP"
 #define BMP_CFG_TABLE_KEY          "table"
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
-#define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
-#define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
+#define BMP_CFG_TABLE_RIB_IN       "bgp_rib_in_table"
+#define BMP_CFG_TABLE_RIB_OUT      "bgp_rib_out_table"
 
 /**
  * \class   RedisManager
