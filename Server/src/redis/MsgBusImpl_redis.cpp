@@ -58,23 +58,34 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
     keys.emplace_back(peer.peer_addr);
 
     fieldValues.emplace_back(make_pair("peer_addr", peer.peer_addr));
-    fieldValues.emplace_back(make_pair("peer_asn", to_string(peer.peer_as)));
+    stringstream peer_as;
+    peer_as << peer.peer_as;
+    fieldValues.emplace_back(make_pair("peer_asn", peer_as.str()));
     fieldValues.emplace_back(make_pair("peer_rd", peer.peer_rd));
-    fieldValues.emplace_back(make_pair("remote_port", to_string(up->remote_port)));
-    fieldValues.emplace_back(make_pair("local_asn", to_string(up->local_asn)));
-    fieldValues.emplace_back(make_pair("local_ip", up->local_ip));
-    fieldValues.emplace_back(make_pair("local_port", to_string(up->local_port)));
-    fieldValues.emplace_back(make_pair("sent_cap", up->sent_cap));
-    fieldValues.emplace_back(make_pair("recv_cap", up->recv_cap));
+    if (up != NULL) {
+        stringstream remote_port;
+        remote_port << up->remote_port;
+        fieldValues.emplace_back(make_pair("remote_port", remote_port.str()));
+        stringstream local_asn;
+        local_asn << up->local_asn;
+        fieldValues.emplace_back(make_pair("local_asn", local_asn.str()));
+        fieldValues.emplace_back(make_pair("local_ip", up->local_ip));
+        stringstream local_port;
+        local_port << up->local_port;
+        fieldValues.emplace_back(make_pair("local_port", local_port.str()));
+        fieldValues.emplace_back(make_pair("sent_cap", up->sent_cap));
+        fieldValues.emplace_back(make_pair("recv_cap", up->recv_cap));
+    }
 
     switch (code) {
         case PEER_ACTION_DOWN:
         {
-            // PEER DOWN only
-            fieldValues.emplace_back(make_pair("bgp_err_code", to_string(down->bgp_err_code)));
-            fieldValues.emplace_back(make_pair("bgp_err_subcode", to_string(down->bgp_err_subcode)));
-            fieldValues.emplace_back(make_pair("error_text", down->error_text));
-
+            if (down != NULL) {
+                // PEER DOWN only
+                fieldValues.emplace_back(make_pair("bgp_err_code", to_string(down->bgp_err_code)));
+                fieldValues.emplace_back(make_pair("bgp_err_subcode", to_string(down->bgp_err_subcode)));
+                fieldValues.emplace_back(make_pair("error_text", down->error_text));
+            }
         }
         break;
     }
@@ -117,16 +128,22 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
 
             case UNICAST_PREFIX_ACTION_ADD:
             {
-                addFieldValues.emplace_back(make_pair("origin", attr->origin));
+                addFieldValues.emplace_back(make_pair("origin", string(attr->origin)));
                 addFieldValues.emplace_back(make_pair("as_path", attr->as_path));
-                addFieldValues.emplace_back(make_pair("as_path_count", to_string(attr->as_path_count)));
-                addFieldValues.emplace_back(make_pair("origin_as", to_string(attr->origin_as)));
-                addFieldValues.emplace_back(make_pair("next_hop", attr->next_hop));
-                addFieldValues.emplace_back(make_pair("local_pref", to_string(attr->local_pref)));
+                stringstream as_path_count;
+                as_path_count << attr->as_path_count;
+                addFieldValues.emplace_back(make_pair("as_path_count", as_path_count.str()));
+                stringstream origin_as;
+                origin_as << attr->origin_as;
+                addFieldValues.emplace_back(make_pair("origin_as", origin_as.str()));
+                addFieldValues.emplace_back(make_pair("next_hop", string(attr->next_hop)));
+                stringstream local_pref;
+                local_pref << attr->local_pref;
+                addFieldValues.emplace_back(make_pair("local_pref", local_pref.str()));
                 addFieldValues.emplace_back(make_pair("community_list", attr->community_list));
                 addFieldValues.emplace_back(make_pair("ext_community_list", attr->ext_community_list));
                 addFieldValues.emplace_back(make_pair("large_community_list", attr->large_community_list));
-                addFieldValues.emplace_back(make_pair("originator_id", attr->originator_id));
+                addFieldValues.emplace_back(make_pair("originator_id", string(attr->originator_id)));
 
                 for (const auto& fieldValue : addFieldValues) {
                     const std::string& field = std::get<0>(fieldValue);
