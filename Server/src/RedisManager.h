@@ -95,6 +95,14 @@ public:
     void ResetBMPTable(const std::string & table);
 
     /**
+     * Reset ResetBMPTable, this will flush redis
+     *
+     * \param [in] table            Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
+     * \param [in] peer_addr        Reference to peer address
+     */
+    void ResetBMPTableByPeer(const std::string & table, const std::string& peer_addr);
+
+    /**
      * WriteBMPTable
      *
      * \param [in] table            Reference to table name
@@ -117,6 +125,13 @@ public:
      * \param [in] args             Reference to various keys
      */
     bool RemoveEntityFromBMPTable(const std::vector<std::string>& keys);
+
+    /**
+     * RemoveBGPPeerFromBMPTable
+     *
+     * \param [in] peer_addr        Reference to peer address
+     */
+    bool RemoveBGPPeerFromBMPTable(const std::string& peer_addr);
 
     /**
      * Get Key separator for deletion
