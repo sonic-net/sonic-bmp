@@ -8,6 +8,7 @@
  */
 
 #include "RedisManager.h"
+#include <algorithm>
 
 
 /*********************************************************************//**
@@ -61,7 +62,6 @@ std::string RedisManager::GetKeySeparator() {
 bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std::string>& keys, const std::vector<swss::FieldValueTuple> fieldValues) {
 
     if (enabledTables_.find(table) == enabledTables_.end()) {
-        LOG_INFO("RedisManager %s is disabled", table.c_str());
         return false;
     }
     std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
@@ -93,6 +93,47 @@ bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys
     return true;
 }
 
+/**
+ * RemoveBGPPeerFromBMPTable
+ *
+ * \param [in] peer_addr             Reference to peer address
+ */
+bool RedisManager::RemoveBGPPeerFromBMPTable(const std::string& peer_addr) {
+    for (const auto& enabledTable : enabledTables_) {
+        ResetBMPTableByPeer(enabledTable, peer_addr);
+    }
+    return true;
+}
+
+/**
+ * Reset ResetBMPTableByPeer, this will flush redis
+ *
+ * \param [in] table        Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
+ * \param [in] peer_addr    Reference to peer address
+ */
+void RedisManager::ResetBMPTableByPeer(const std::string & table, const std::string& peer_addr) {
+
+    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
+    std::vector<std::string> keys;
+    stateBMPTable->getKeys(keys);
+
+    std::string pattern = "|" + peer_addr;
+    std::vector<std::string> filtered_keys;
+
+    std::copy_if(keys.begin(), keys.end(), std::back_inserter(filtered_keys),
+                 [&pattern](const std::string& key) {
+                     return key.size() >= pattern.size() &&
+                            key.compare(key.size() - pattern.size(), pattern.size(), pattern) == 0;
+                 });
+
+    for (const auto& key : filtered_keys) {
+        LOG_INFO("RedisManager ResetBMPTableByPeer del key %s", key);
+    }
+
+    LOG_INFO("RedisManager ResetBMPTableByPeer data size %d", filtered_keys.size());
+
+    stateDb_->del(filtered_keys);
+}
 
 /**
  * ExitRedisManager

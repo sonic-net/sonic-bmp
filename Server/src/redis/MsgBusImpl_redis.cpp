@@ -85,6 +85,10 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
                 fieldValues.emplace_back(make_pair("bgp_err_code", to_string(down->bgp_err_code)));
                 fieldValues.emplace_back(make_pair("bgp_err_subcode", to_string(down->bgp_err_subcode)));
                 fieldValues.emplace_back(make_pair("error_text", down->error_text));
+
+                // clear db entries for bgp peer
+                std::string bgp_peer(peer.peer_addr);
+                redisMgr_.RemoveBGPPeerFromBMPTable(bgp_peer);
             }
         }
         break;
