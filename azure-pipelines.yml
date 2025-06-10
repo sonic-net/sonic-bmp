@@ -60,7 +60,7 @@ jobs:
 - job: build
   timeoutInMinutes: 240
   pool:
-    vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-latest'
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
