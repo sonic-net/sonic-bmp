@@ -12,6 +12,7 @@
 #include <list>
 #include <cstring>
 #include <cstdlib>
+#include <cstdint>
 #include <unistd.h>
 
 #include <arpa/inet.h>
