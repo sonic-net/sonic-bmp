@@ -366,6 +366,7 @@ namespace bgp_msg {
                         len -= 22;
 
                         addr_bytes = tuple.ip_len > 0 ? (tuple.ip_len / 8) : 0;
+                        if (addr_bytes > (int)sizeof(ip_binary)) addr_bytes = sizeof(ip_binary);
 
                         if (tuple.ip_len > 0 and (addr_bytes + data_read) <= data_len) {
                             // IP Address (0, 4, or 16 bytes)
@@ -434,6 +435,7 @@ namespace bgp_msg {
                         len -= 5;
 
                         addr_bytes = tuple.originating_router_ip_len > 0 ? (tuple.originating_router_ip_len / 8) : 0;
+                        if (addr_bytes > (int)sizeof(ip_binary)) addr_bytes = sizeof(ip_binary);
 
                         if (tuple.originating_router_ip_len > 0 and (addr_bytes + data_read) <= data_len) {
 
@@ -470,12 +472,13 @@ namespace bgp_msg {
                         len -= 11;
 
                         addr_bytes = tuple.originating_router_ip_len > 0 ? (tuple.originating_router_ip_len / 8) : 0;
+                        if (addr_bytes > (int)sizeof(ip_binary)) addr_bytes = sizeof(ip_binary);
 
                         if (tuple.originating_router_ip_len > 0 and (addr_bytes + data_read) <= data_len) {
 
                             // Originating Router's IP Address (4 or 16 bytes)
                             bzero(ip_binary, 16);
-                            memcpy(&ip_binary, data_pointer, (int) tuple.originating_router_ip_len / 8);
+                            memcpy(&ip_binary, data_pointer, addr_bytes);
 
                             inet_ntop(tuple.originating_router_ip_len > 32 ? AF_INET6 : AF_INET,
                                       ip_binary, ip_char, sizeof(ip_char));
