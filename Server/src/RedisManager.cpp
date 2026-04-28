@@ -61,7 +61,7 @@ std::string RedisManager::GetKeySeparator() {
 bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std::string>& keys, const std::vector<swss::FieldValueTuple> fieldValues) {
 
     if (enabledTables_.find(table) == enabledTables_.end()) {
-        LOG_INFO("RedisManager %s is disabled", table.c_str());
+        DEBUG("RedisManager %s is disabled", table.c_str());
         return false;
     }
     std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
