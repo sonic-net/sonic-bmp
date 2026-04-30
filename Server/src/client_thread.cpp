@@ -96,6 +96,11 @@ void *ClientThread(void *arg) {
      */
     pthread_cleanup_push(ClientThread_cancel, &cInfo);
 
+    /*
+     * moved rBMP here to keep it in context for the try ... catch
+     */
+    BMPReader rBMP(logger, thr->cfg);
+
     try {
 #ifndef REDIS_ENABLED
         // connect to message bus
@@ -108,7 +113,7 @@ void *ClientThread(void *arg) {
         cInfo.redis = std::make_shared<MsgBusImpl_redis>(logger, thr->cfg, cInfo.client);
         cInfo.redis->ResetAllTables();
 #endif
-        BMPReader rBMP(logger, thr->cfg);
+        //BMPReader rBMP(logger, thr->cfg); --- moved up to keep rBMP in context
         LOG_INFO("Thread started to monitor BMP from router %s using socket %d buffer in bytes = %u",
                 cInfo.client->c_ip, cInfo.client->c_sock, thr->cfg->bmp_buffer_size);
 
@@ -122,7 +127,7 @@ void *ClientThread(void *arg) {
          */
         bool bmp_run = true;
 #ifndef REDIS_ENABLED
-        //cInfo.bmp_reader_thread = new std::thread([&] {rBMP.readerThreadLoop(bmp_run,cInfo.client,
+        //cInfo.bmp_reader_thread = new std::thread([&] rBMP.readerThreadLoop(bmp_run,cInfo.client,
         cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client,
                                                                              (MsgBusInterface *)cInfo.mbus );
 #else
