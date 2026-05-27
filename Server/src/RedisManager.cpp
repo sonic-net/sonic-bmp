@@ -155,8 +155,17 @@ void RedisManager::FlushBMPTables() {
  */
 void RedisManager::ExitRedisManager() {
     // Best-effort: drain anything still buffered so we don't lose state
-    // updates that have already been observed by openbmpd.
-    FlushBMPTables();
+    // updates that have already been observed by openbmpd. This runs from
+    // ~MsgBusImpl_redis, so we must not let a redis I/O error escape into
+    // the destructor chain - mirror swss::RedisPipeline's own dtor
+    // pattern and swallow exceptions here.
+    try {
+        FlushBMPTables();
+    } catch (const std::exception& e) {
+        LOG_INFO("RedisManager ExitRedisManager flush failed: %s", e.what());
+    } catch (...) {
+        LOG_INFO("RedisManager ExitRedisManager flush failed with unknown exception");
+    }
     exit_ = true;
 }
 
@@ -197,6 +206,12 @@ bool RedisManager::InitBMPConfig() {
  * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
  */
 void RedisManager::ResetBMPTable(const std::string & table) {
+
+    // Drain the pipeline before reading the current key set: getKeys() runs
+    // on stateDb_'s connection and would otherwise miss any SETs that are
+    // still buffered in pipeline_ (which uses an independent connection),
+    // leaving stale entries in redis after the reset completes.
+    FlushBMPTables();
 
     std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
     std::vector<std::string> keys;
