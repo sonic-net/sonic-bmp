@@ -44,6 +44,13 @@ void RedisManager::Setup(Logger *logPtr) {
         swss::SonicDBConfig::initialize();
     }
 
+    // Drop any pre-existing buffered Table writers before we replace the
+    // pipeline they reference. Today Setup() is only called once from
+    // MsgBusImpl_redis's constructor, but bufferedTables_ holds raw
+    // pointers into pipeline_ and would dangle if a second Setup() ever
+    // reassigned pipeline_ without clearing the map first.
+    bufferedTables_.clear();
+
     stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
     separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 
