@@ -118,7 +118,7 @@ jobs:
         runVersion: 'latestFromBranch'
         runBranch: 'refs/heads/$(BUILD_BRANCH)'
         patterns: |
-            target/debs/bookworm/libyang*.deb
+            target/debs/bookworm/libyang3_*.deb
             target/debs/bookworm/libnl*.deb
             target/python-wheels/bookworm/sonic_yang_models*.whl
       displayName: "Download bookworm debs"
@@ -131,7 +131,7 @@ jobs:
         sudo dpkg -i ../target/debs/bookworm/libnl-route-3-200_*.deb
         sudo dpkg -i ../target/debs/bookworm/libnl-nf-3-200_*.deb
         # LIBYANG
-        sudo dpkg -i ../target/debs/bookworm/libyang*1.0.73*.deb
+        sudo dpkg -i ../target/debs/bookworm/libyang3_*.deb
         # SONIC YANGS
         set -ex
         sudo pip3 install ../target/python-wheels/bookworm/sonic_yang_models-1.0-py3-none-any.whl
