@@ -24,7 +24,7 @@
 #include "Config.h"
 
 #ifndef REDIS_ENABLED
-#include "kafka/KafkaTopicSelector.h"
+#include "MsgBusTopics.h"
 #endif
 
 /*********************************************************************//**
@@ -884,4 +884,3 @@ void Config::printWarning(const std::string msg, const YAML::Node &node) {
     }
     std::cout << "WARN: " << msg << " : " << type << " = " << node.Scalar() << std::endl ;
 }
-

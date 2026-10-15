@@ -6,7 +6,28 @@ if (OPENSSL_FOUND)
 else()
     set(SSL_LIBS )
 endif()
+set(BMP_CORE_SRC_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bmp/BMPReader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bmp/parseBMP.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/md5.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Logger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Config.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/parseBGP.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/NotificationMsg.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/OpenMsg.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/UpdateMsg.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/MPReachAttr.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/MPUnReachAttr.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/ExtCommunity.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/AddPathDataContainer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/EVPN.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/linkstate/MPLinkState.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bgp/linkstate/MPLinkStateAttr.cpp)
 
+if(BMP_PARSER_TESTS_ONLY)
+    add_subdirectory(tests)
+    return()
+endif()
 # cmake -DENABLE_REDIS=ON
 option(ENABLE_REDIS "Enable Redis population" OFF)
 
@@ -138,25 +159,10 @@ endif()
 
 # Define the source files to compile
 set (SRC_FILES
+    ${BMP_CORE_SRC_FILES}
 	src/bmp/BMPListener.cpp
-	src/bmp/BMPReader.cpp
 	src/openbmp.cpp
-	src/bmp/parseBMP.cpp
-	src/md5.cpp
-	src/Logger.cpp
-    src/Config.cpp
 	src/client_thread.cpp
-	src/bgp/parseBGP.cpp
-	src/bgp/NotificationMsg.cpp
-	src/bgp/OpenMsg.cpp
-	src/bgp/UpdateMsg.cpp
-	src/bgp/MPReachAttr.cpp
-	src/bgp/MPUnReachAttr.cpp
-    src/bgp/ExtCommunity.cpp
-    src/bgp/AddPathDataContainer.cpp
-    src/bgp/EVPN.cpp
-    src/bgp/linkstate/MPLinkState.cpp
-    src/bgp/linkstate/MPLinkStateAttr.cpp
     )
 
 # Add specific files used
@@ -209,3 +215,6 @@ endif()
 # Install the binary and configs
 install(TARGETS openbmpd DESTINATION bin COMPONENT binaries)
 install(FILES openbmpd.conf DESTINATION etc/openbmp/ COMPONENT config)
+if(BMP_PARSER_TESTS)
+    add_subdirectory(tests)
+endif()

@@ -238,7 +238,9 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client, MsgBusInterface
                     delete pBGP;
 
                     // Read info TLV data
-                    if (((int)pBMP->bmp_data_len - read) > 0) {
+                    if (read < 0 || static_cast<size_t>(read) > pBMP->bmp_data_len)
+                        throw "BMP Peer-Up Open messages exceed the payload length";
+                    if (static_cast<size_t>(read) < pBMP->bmp_data_len) {
                         SELF_DEBUG("%s: PEER UP has info data, parsing %d bytes", p_entry.peer_addr, pBMP->bmp_data_len - read);
                         pBMP->parsePeerUpInfo(pBMP->bmp_data + read, (int)pBMP->bmp_data_len - read);
                     }
@@ -296,9 +298,9 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client, MsgBusInterface
             }
 
             case parseBMP::TYPE_INIT_MSG : { // Initiation Message
-                client->initRec = true; 		//indicating that init message is received for the router/client.
 		LOG_INFO("%s: Init message received with length of %u", client->c_ip, pBMP->getBMPLength());
                 pBMP->handleInitMsg(read_fd, r_object);
+                client->initRec = true;
 		
                 if(cfg->pat_enabled && r_object.hash_type)
 			hashRouter(client, r_object);
