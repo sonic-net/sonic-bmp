@@ -1,5 +1,6 @@
 #include "parseBMP.h"
 #include "BMPReader.h"
+#include "bgp_common.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -289,7 +290,9 @@ int main(int argc, char **argv) {
                   "Truncated value partially changed peer metadata");
         });
     }
-    for (int length : {0, 1, 2, 3, 4, 5, 255, 256, 8192, 65531}) {
+    // Leave room for a valid BGP ID and sysName around the ignored TLV.
+    const int max_bgp_id_length = BGP_MAX_MSG_SIZE - 3 * BMP_INFO_TLV_HDR_LEN - 4 - 1;
+    for (int length : {0, 1, 2, 3, 4, 5, 255, 256, 8192, max_bgp_id_length}) {
         add("bgp-id-width-" + std::to_string(length), length <= 5, [=] {
             Fixture f;
             Bytes value(length, 1);
