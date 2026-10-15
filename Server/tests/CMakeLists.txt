@@ -15,7 +15,7 @@ if(BMP_PARSER_SANITIZERS)
         message(FATAL_ERROR "Parser sanitizers require GCC or Clang")
     endif()
     set_property(TARGET bmp_parser_tests APPEND_STRING PROPERTY COMPILE_FLAGS
-        " -fsanitize=address,undefined -fno-omit-frame-pointer")
+        " -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer")
     set_property(TARGET bmp_parser_tests APPEND_STRING PROPERTY LINK_FLAGS
         " -fsanitize=address,undefined")
 endif()

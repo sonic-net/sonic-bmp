@@ -869,7 +869,7 @@ bool parseBMP::handleStatsReport(int sock, MsgBusInterface::obj_stats_report &st
 void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
     // Buffer the init message for parsing
     bufferBMPMessage(sock);
-    validateInfoTlvs(bmp_data, bmp_data_len, INIT_TYPE_ROUTER_BGP_ID, sizeof(in_addr_t));
+    validateInfoTlvs(bmp_data, bmp_data_len);
     r_entry.hash_type = 0;
     const u_char *bufPtr = bmp_data;
     size_t remaining = bmp_data_len;
@@ -881,7 +881,7 @@ void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
     while (nextInfoTlv(bufPtr, remaining, info)) {
         // TODO: Change to SELF_DEBUG after IOS supports INIT messages correctly
         LOG_INFO("Init message type %hu and length %hu parsed", info.type, info.length);
-        if (info.length == 0)
+        if (info.length == 0 && info.type != INIT_TYPE_ROUTER_BGP_ID)
             continue;
 
         /*
@@ -909,6 +909,10 @@ void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
                 break;
 
             case INIT_TYPE_ROUTER_BGP_ID:
+                if (info.length != sizeof(in_addr_t)) {
+                    LOG_NOTICE("Init message type BGP ID not of IPv4 addr length");
+                    break;
+                }
                 inet_ntop(AF_INET, info.value, r_entry.bgp_id, sizeof(r_entry.bgp_id));
                 LOG_INFO("Init message type %hu = %s", info.type, r_entry.bgp_id);
                 r_entry.hash_type=2;  //This value stores the hash_type if BGPid is present

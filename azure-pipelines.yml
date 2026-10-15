@@ -57,6 +57,26 @@ schedules:
     - master
 
 jobs:
+- job: parser_tests
+  timeoutInMinutes: 15
+  pool:
+    vmImage: 'ubuntu-22.04'
+  steps:
+    - checkout: self
+      clean: true
+
+    - script: |
+        set -ex
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          cmake g++ libboost-dev libyaml-cpp-dev
+        cmake -S . -B build-parser \
+          -DBMP_PARSER_TESTS_ONLY=ON -DBMP_PARSER_SANITIZERS=ON \
+          -DCMAKE_BUILD_TYPE=Debug
+        cmake --build build-parser --parallel 2
+        ctest --test-dir build-parser --output-on-failure
+      displayName: 'Kafka-free BMP parser and reader sanitizer regressions'
+
 - job: build
   timeoutInMinutes: 240
   pool:
@@ -155,15 +175,6 @@ jobs:
         sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
-
-    - script: |
-        set -ex
-        cmake -S . -B build-parser \
-          -DBMP_PARSER_TESTS_ONLY=ON -DBMP_PARSER_SANITIZERS=ON \
-          -DCMAKE_BUILD_TYPE=Debug
-        cmake --build build-parser --parallel 2
-        ctest --test-dir build-parser --output-on-failure
-      displayName: 'Offline BMP parser and reader sanitizer regressions'
 
     - script: |
         set -ex

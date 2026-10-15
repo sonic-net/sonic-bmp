@@ -289,24 +289,83 @@ int main(int argc, char **argv) {
                   "Truncated value partially changed peer metadata");
         });
     }
-    for (int length = 0; length <= 5; ++length) {
-        add("bgp-id-width-" + std::to_string(length), length == 4, [=] {
+    for (int length : {0, 1, 2, 3, 4, 5, 255, 256, 8192, 65531}) {
+        add("bgp-id-width-" + std::to_string(length), length <= 5, [=] {
             Fixture f;
             Bytes value(length, 1);
             if (length != 4) {
-                const auto before = f.router;
                 Bytes payload = tlv(2, {'n'});
                 append(payload, tlv(65531, value));
-                rejects([&] { f.parse(4, payload); });
-                check(std::memcmp(&f.router, &before, sizeof(f.router)) == 0,
-                      "Invalid BGP ID width partially changed router metadata");
+                append(payload, tlv(1, {'d'}));
+                f.parse(4, payload);
+                check(std::string(reinterpret_cast<const char *>(f.router.name)) == "n" &&
+                      std::string(reinterpret_cast<const char *>(f.router.descr)) == "d",
+                      "Ignored BGP ID lost surrounding metadata");
+                check(f.router.hash_type == 1 && f.router.bgp_id[0] == '\0',
+                      "Ignored BGP ID changed router identity");
+
+                payload = tlv(65531, {192, 0, 2, 9});
+                append(payload, tlv(65531, value));
+                append(payload, tlv(2, {'n'}));
+                f.parse(4, payload);
+                check(std::string(f.router.bgp_id) == "192.0.2.9" && f.router.hash_type == 2,
+                      "Ignored BGP ID overrode a valid BGP ID");
             } else {
                 f.parse(4, tlv(65531, {192, 0, 2, 9}));
                 check(std::string(f.router.bgp_id) == "192.0.2.9", "BGP ID not decoded");
                 check(f.router.hash_type == 2, "BGP ID hash precedence changed");
             }
         });
+        if (length != 4) {
+            add("reader-ignored-bgp-id-width-" + std::to_string(length), length <= 5, [=] {
+                ReaderFixture f;
+                Bytes payload = tlv(2, {'n'});
+                append(payload, tlv(65531, Bytes(length, 1)));
+                append(payload, tlv(1, {'d'}));
+                Bytes packet = message(4, payload);
+                append(packet, message(4, tlv(2, {'m'})));
+                f.sockets.send(packet);
+                check(f.reader.ReadIncomingMsg(&f.client, &f.bus),
+                      "Unsupported BGP ID closed the session");
+                check(f.client.initRec && f.client.c_sock == f.sockets.reader &&
+                      f.bus.init == 1 && f.bus.local_error == 0 && f.bus.raw == 1,
+                      "Unsupported BGP ID did not publish a successful Initiation");
+                check(std::string(reinterpret_cast<const char *>(f.bus.router.name)) == "n" &&
+                      std::string(reinterpret_cast<const char *>(f.bus.router.descr)) == "d" &&
+                      f.bus.router.bgp_id[0] == '\0' && f.bus.router.hash_type == 1,
+                      "Unsupported BGP ID corrupted published metadata");
+                check(f.reader.ReadIncomingMsg(&f.client, &f.bus),
+                      "Session could not process the next message");
+                check(f.bus.init == 2 && f.bus.raw == 2 && f.bus.local_error == 0 &&
+                      std::string(reinterpret_cast<const char *>(f.bus.router.name)) == "m",
+                      "Message after unsupported BGP ID was not published");
+            });
+        }
     }
+    add("init-bgp-id-truncated-value", false, [] {
+        Fixture f;
+        const auto before = f.router;
+        Bytes payload = tlv(2, {'n'});
+        Bytes truncated = tlv(65531, {192, 0, 2});
+        truncated[3] = 4;
+        append(payload, truncated);
+        rejects([&] { f.parse(4, payload); });
+        check(std::memcmp(&f.router, &before, sizeof(f.router)) == 0,
+              "Truncated BGP ID partially changed router metadata");
+    });
+    add("reader-truncated-bgp-id-value", false, [] {
+        ReaderFixture f;
+        Bytes payload = tlv(2, {'n'});
+        Bytes truncated = tlv(65531, {192, 0, 2});
+        truncated[3] = 4;
+        append(payload, truncated);
+        f.sockets.send(message(4, payload));
+        shutdown(f.sockets.writer, SHUT_WR);
+        rejects([&] { f.reader.ReadIncomingMsg(&f.client, &f.bus); });
+        check(f.bus.init == 0 && f.bus.local_error == 1 && f.bus.raw == 0 &&
+              f.client.c_sock == 0 && !f.client.initRec,
+              "Truncated BGP ID did not follow the disconnect/error path");
+    });
     for (int length = 0; length <= 3; ++length) {
         add("reason-width-" + std::to_string(length), length == 2, [=] {
             Fixture f;

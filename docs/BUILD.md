@@ -20,7 +20,10 @@ ctest --test-dir build-parser --output-on-failure
 ```
 
 AddressSanitizer and UndefinedBehaviorSanitizer are enabled for the test target
-only; production binaries are unchanged. Set `BMP_PARSER_SANITIZERS=OFF` for a
+only, and undefined-behavior findings fail the test process rather than
+recovering; production binaries are unchanged. CI runs this configuration in
+a separate job without installing Kafka or Redis dependencies.
+Set `BMP_PARSER_SANITIZERS=OFF` for a
 compiler without sanitizer support. Parser tests are opt-in for normal Kafka
 and `ENABLE_REDIS=ON` builds so legacy production builds do not acquire new
 test-tool or yaml-cpp development dependencies:
@@ -33,9 +36,12 @@ ctest --output-on-failure
 
 Initiation, Termination, and Peer-Up information TLVs must have a complete
 four-byte header and the full declared value within the received payload.
-Malformed framing, invalid BGP ID/reason widths, and invalid Peer-Up
+Malformed framing, invalid termination-reason widths, and invalid Peer-Up
 offsets follow the reader's existing logged session-disconnect path.
 An entire TLV sequence is validated before its metadata is changed.
+The optional experimental BGP ID TLV (type 65531) is decoded only when its
+value is four bytes. Other fully framed widths are logged and skipped
+without disconnecting the session or replacing a valid BGP ID.
 Fully framed long strings are truncated to destination capacity minus
 one and explicitly NUL-terminated. Empty strings are ignored, duplicate
 nonempty strings replace previous values, and embedded NULs retain
