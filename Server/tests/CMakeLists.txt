@@ -1,0 +1,23 @@
+find_package(Threads REQUIRED)
+find_path(TEST_YAML_INCLUDE_DIR yaml-cpp/yaml.h)
+find_library(TEST_YAML_LIBRARY yaml-cpp)
+if(NOT TEST_YAML_INCLUDE_DIR OR NOT TEST_YAML_LIBRARY)
+    message(FATAL_ERROR "Offline reader tests require yaml-cpp")
+endif()
+include_directories(${TEST_YAML_INCLUDE_DIR}
+    ../src ../src/bmp ../src/bgp ../src/bgp/linkstate)
+add_executable(bmp_parser_tests parseBMP_test.cpp ${BMP_CORE_SRC_FILES})
+set_property(TARGET bmp_parser_tests PROPERTY CXX_STANDARD 14)
+set_property(TARGET bmp_parser_tests PROPERTY CXX_STANDARD_REQUIRED ON)
+target_link_libraries(bmp_parser_tests ${TEST_YAML_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+if(BMP_PARSER_SANITIZERS)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "Parser sanitizers require GCC or Clang")
+    endif()
+    set_property(TARGET bmp_parser_tests APPEND_STRING PROPERTY COMPILE_FLAGS
+        " -fsanitize=address,undefined -fno-omit-frame-pointer")
+    set_property(TARGET bmp_parser_tests APPEND_STRING PROPERTY LINK_FLAGS
+        " -fsanitize=address,undefined")
+endif()
+add_test(NAME bmp_parser_tlv COMMAND bmp_parser_tests)
+set_tests_properties(bmp_parser_tlv PROPERTIES TIMEOUT 120)

@@ -4,6 +4,44 @@ See the various requirements and suggested system configurations at [Requirement
 
 Openbmp is built and installed using 'cmake' to build the makefiles. 
 
+Offline BMP parser and reader regression tests
+---------------------------------------------
+
+With a C++14 compiler, CMake, Boost headers, pthreads, and yaml-cpp installed,
+the actual BMP parser/reader can be tested without Kafka, Redis, swsscommon,
+or any running collector. The tests use private Unix socket pairs, never a
+network listener. Use a modern CMake supporting `-S`, `-B`, and `--test-dir`.
+
+```
+cmake -S . -B build-parser -DBMP_PARSER_TESTS_ONLY=ON \
+  -DBMP_PARSER_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-parser --parallel 2
+ctest --test-dir build-parser --output-on-failure
+```
+
+AddressSanitizer and UndefinedBehaviorSanitizer are enabled for the test target
+only; production binaries are unchanged. Set `BMP_PARSER_SANITIZERS=OFF` for a
+compiler without sanitizer support. Parser tests are opt-in for normal Kafka
+and `ENABLE_REDIS=ON` builds so legacy production builds do not acquire new
+test-tool or yaml-cpp development dependencies:
+
+```
+cmake -DBMP_PARSER_TESTS=ON <other options> ..
+make
+ctest --output-on-failure
+```
+
+Initiation, Termination, and Peer-Up information TLVs must have a complete
+four-byte header and the full declared value within the received payload.
+Malformed framing, invalid BGP ID/reason widths, and invalid Peer-Up
+offsets follow the reader's existing logged session-disconnect path.
+An entire TLV sequence is validated before its metadata is changed.
+Fully framed long strings are truncated to destination capacity minus
+one and explicitly NUL-terminated. Empty strings are ignored, duplicate
+nonempty strings replace previous values, and embedded NULs retain
+C-string semantics. Unknown TLVs are skipped by their full wire length,
+not the destination copy length.
+
 
 All Platforms (Ubuntu, CentOS, etc.)
 ------------------------------------

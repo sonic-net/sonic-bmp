@@ -20,6 +20,53 @@
 #include <arpa/inet.h>
 #include "bgp_common.h"
 
+namespace {
+
+struct InfoTlv {
+    uint16_t type;
+    uint16_t length;
+    const u_char *value;
+};
+
+bool nextInfoTlv(const u_char *&data, size_t &remaining, InfoTlv &tlv) {
+    if (remaining == 0)
+        return false;
+    if (data == NULL || remaining < BMP_INFO_TLV_HDR_LEN)
+        throw "BMP information TLV header is truncated";
+
+    tlv.type = (static_cast<uint16_t>(data[0]) << 8) | data[1];
+    tlv.length = (static_cast<uint16_t>(data[2]) << 8) | data[3];
+    remaining -= BMP_INFO_TLV_HDR_LEN;
+    data += BMP_INFO_TLV_HDR_LEN;
+    if (tlv.length > remaining)
+        throw "BMP information TLV value is truncated";
+
+    tlv.value = data;
+    data += tlv.length;
+    remaining -= tlv.length;
+    return true;
+}
+
+void validateInfoTlvs(const u_char *data, size_t remaining,
+                      uint16_t fixed_type = 0, size_t fixed_length = 0) {
+    InfoTlv tlv;
+    // Validate the complete message before modifying its metadata.
+    while (nextInfoTlv(data, remaining, tlv)) {
+        if (fixed_length && tlv.type == fixed_type && tlv.length != fixed_length)
+            throw "BMP information TLV has an invalid fixed-field length";
+    }
+}
+
+template <typename Char, size_t Capacity>
+void copyInfoString(Char (&destination)[Capacity], const InfoTlv &tlv) {
+    const size_t length = tlv.length < Capacity ? tlv.length : Capacity - 1;
+    if (length > 0)
+        memcpy(destination, tlv.value, length);
+    destination[length] = '\0';
+}
+
+}
+
 /**
  * Constructor for class
  *
@@ -589,44 +636,27 @@ void parseBMP::bufferBMPMessage(int sock) {
  * \param [in] len          Length of info TLV data to read
  */
 void parseBMP::parsePeerUpInfo(u_char *data, int len) {
-    info_tlv_msg info;
-    char infoBuf[255];
-    int infoLen;
-    u_char *bufPtr = data;
+    if (len < 0)
+        throw "BMP Peer-Up information length is negative";
+    validateInfoTlvs(data, static_cast<size_t>(len));
+    const u_char *bufPtr = data;
+    size_t remaining = static_cast<size_t>(len);
+    InfoTlv info;
 
     /*
      * Loop through the info TLV's (in buffer) and parse each TLV
      */
-    for (int i = 0; i < len; i += BMP_INFO_TLV_HDR_LEN) {
-
-        memcpy(&info, bufPtr, BMP_INFO_TLV_HDR_LEN);
-        info.info = NULL;
-        bgp::SWAP_BYTES(&info.len);
-        bgp::SWAP_BYTES(&info.type);
-
-        bufPtr += BMP_INFO_TLV_HDR_LEN;                // Move pointer past the info header
-
-        SELF_DEBUG("Peer info message type %hu and length %hu parsed", info.type, info.len);
-
-        if (info.len > 0) {
-            infoLen = sizeof(infoBuf) < info.len ? sizeof(infoBuf) : info.len;
-            bzero(infoBuf, sizeof(infoBuf));
-            memcpy(infoBuf, bufPtr, infoLen);
-            bufPtr += infoLen;                     // Move pointer past the info data
-            i += infoLen;                          // Update the counter past the info data
-
-            info.info = infoBuf;
-
-        }
+    while (nextInfoTlv(bufPtr, remaining, info)) {
+        SELF_DEBUG("Peer info message type %hu and length %hu parsed", info.type, info.length);
+        if (info.length == 0)
+            continue;
 
         /*
          * Save the data based on info type
          */
         switch (info.type) {
             case INFO_TLV_PEER_VRF_TABLE :
-                infoLen = sizeof(p_entry->table_name) < (info.len - 1) ? (sizeof(p_entry->table_name) - 1)
-                                                                       : info.len;
-                memcpy(p_entry->table_name, info.info, infoLen);
+                copyInfoString(p_entry->table_name, info);
                 LOG_INFO("Peer table/vrf name %hu = %s", info.type, p_entry->table_name);
 
                 break;
@@ -648,7 +678,8 @@ void parseBMP::parsePeerUpInfo(u_char *data, int len) {
  * \returns true if successfully parsed the bmp peer up header, false otherwise
  */
 bool parseBMP::parsePeerUpEventHdr(int sock, MsgBusInterface::obj_peer_up_event &up_event) {
-
+    if (bmp_len < BMP_PEER_UP_HDR_LEN)
+        throw "BMP Peer-Up header is truncated";
 
     unsigned char local_addr[16];
     bool isParseGood = true;
@@ -836,59 +867,35 @@ bool parseBMP::handleStatsReport(int sock, MsgBusInterface::obj_stats_report &st
  * \param [in/out] r_entry     Already defined router entry reference (will be updated)
  */
 void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
-    info_tlv_msg info;
-    char infoBuf[sizeof(r_entry.initiate_data)];
-    int infoLen;
-    r_entry.hash_type=0;    
-
     // Buffer the init message for parsing
     bufferBMPMessage(sock);
-
-    u_char *bufPtr = bmp_data;
+    validateInfoTlvs(bmp_data, bmp_data_len, INIT_TYPE_ROUTER_BGP_ID, sizeof(in_addr_t));
+    r_entry.hash_type = 0;
+    const u_char *bufPtr = bmp_data;
+    size_t remaining = bmp_data_len;
+    InfoTlv info;
 
     /*
      * Loop through the init message (in buffer) to parse each TLV
      */
-    for (int i=0; i < bmp_data_len; i += BMP_INFO_TLV_HDR_LEN) {
-        memcpy(&info, bufPtr, BMP_INFO_TLV_HDR_LEN);
-        info.info = NULL;
-        bgp::SWAP_BYTES(&info.len);
-        bgp::SWAP_BYTES(&info.type);
-
-        bufPtr += BMP_INFO_TLV_HDR_LEN;                // Move pointer past the info header
-
+    while (nextInfoTlv(bufPtr, remaining, info)) {
         // TODO: Change to SELF_DEBUG after IOS supports INIT messages correctly
-        LOG_INFO("Init message type %hu and length %hu parsed", info.type, info.len);
-
-        if (info.len > 0) {
-            infoLen = sizeof(infoBuf) < info.len ? sizeof(infoBuf) : info.len;
-            bzero(infoBuf, sizeof(infoBuf));
-            memcpy(infoBuf, bufPtr, infoLen);
-            bufPtr += infoLen;                     // Move pointer past the info data
-            i += infoLen;                          // Update the counter past the info data
-
-            info.info = infoBuf;
-
-        }
-        else {
-            // ignore info lengths of zero
+        LOG_INFO("Init message type %hu and length %hu parsed", info.type, info.length);
+        if (info.length == 0)
             continue;
-        }
 
         /*
          * Save the data based on info type
          */
         switch (info.type) {
             case INIT_TYPE_FREE_FORM_STRING :
-                infoLen = sizeof(r_entry.initiate_data) < (info.len - 1) ? (sizeof(r_entry.initiate_data) - 1) : info.len;
-                memcpy(r_entry.initiate_data, info.info, infoLen);
+                copyInfoString(r_entry.initiate_data, info);
                 LOG_INFO("Init message type %hu = %s", info.type, r_entry.initiate_data);
 
                 break;
 
             case INIT_TYPE_SYSNAME :
-                infoLen = sizeof(r_entry.name) < (info.len - 1) ? (sizeof(r_entry.name) - 1) : info.len;
-                strncpy((char *)r_entry.name, info.info, infoLen);
+                copyInfoString(r_entry.name, info);
                 LOG_INFO("Init message type %hu = %s", info.type, r_entry.name);
 
                 if(r_entry.hash_type<2)	//Here we will check if bgp_id is not received, then we will update the hash_type
@@ -897,17 +904,12 @@ void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
                 break;
 
             case INIT_TYPE_SYSDESCR :
-                infoLen = sizeof(r_entry.descr) < (info.len - 1) ? (sizeof(r_entry.descr) - 1) : info.len;
-                strncpy((char *)r_entry.descr, info.info, infoLen);
+                copyInfoString(r_entry.descr, info);
                 LOG_INFO("Init message type %hu = %s", info.type, r_entry.descr);
                 break;
 
             case INIT_TYPE_ROUTER_BGP_ID:
-                if (info.len != sizeof(in_addr_t)) {
-                    LOG_NOTICE("Init message type BGP ID not of IPv4 addr length");
-                    break;
-                }
-                inet_ntop(AF_INET, info.info, r_entry.bgp_id, sizeof(r_entry.bgp_id));
+                inet_ntop(AF_INET, info.value, r_entry.bgp_id, sizeof(r_entry.bgp_id));
                 LOG_INFO("Init message type %hu = %s", info.type, r_entry.bgp_id);
                 r_entry.hash_type=2;  //This value stores the hash_type if BGPid is present
 
@@ -926,53 +928,35 @@ void parseBMP::handleInitMsg(int sock, MsgBusInterface::obj_router &r_entry) {
  * \param [in/out] r_entry     Already defined router entry reference (will be updated)
  */
 void parseBMP::handleTermMsg(int sock, MsgBusInterface::obj_router &r_entry) {
-    term_msg_v3 termMsg;
-    char infoBuf[sizeof(r_entry.term_data)];
-    int infoLen;
-
-    // Buffer the init message for parsing
+    // Buffer the termination message for parsing
     bufferBMPMessage(sock);
-
-    u_char *bufPtr = bmp_data;
+    validateInfoTlvs(bmp_data, bmp_data_len, TERM_TYPE_REASON, sizeof(uint16_t));
+    const u_char *bufPtr = bmp_data;
+    size_t remaining = bmp_data_len;
+    InfoTlv termMsg;
 
     /*
      * Loop through the term message (in buffer) to parse each TLV
      */
-    for (int i=0; i < bmp_data_len; i += BMP_TERM_MSG_LEN) {
-        memcpy(&termMsg, bufPtr, BMP_TERM_MSG_LEN);
-        termMsg.info = NULL;
-        bgp::SWAP_BYTES(&termMsg.len);
-        bgp::SWAP_BYTES(&termMsg.type);
-
-        bufPtr += BMP_TERM_MSG_LEN;                // Move pointer past the info header
-
-        LOG_INFO("Term message type %hu and length %hu parsed", termMsg.type, termMsg.len);
-
-        if (termMsg.len > 0) {
-            infoLen = sizeof(infoBuf) < termMsg.len ? sizeof(infoBuf) : termMsg.len;
-            bzero(infoBuf, sizeof(infoBuf));
-            memcpy(infoBuf, bufPtr, infoLen);
-            bufPtr += infoLen;                     // Move pointer past the info data
-            i += infoLen;                       // Update the counter past the info data
-
-            termMsg.info = infoBuf;
-
-            LOG_INFO("Term message type %hu = %s", termMsg.type, termMsg.info);
-        }
+    while (nextInfoTlv(bufPtr, remaining, termMsg)) {
+        LOG_INFO("Term message type %hu and length %hu parsed", termMsg.type, termMsg.length);
+        if (termMsg.length == 0)
+            continue;
 
         /*
          * Save the data based on info type
          */
         switch (termMsg.type) {
             case TERM_TYPE_FREE_FORM_STRING :
-                memcpy(r_entry.term_data, termMsg.info, termMsg.len);
+                copyInfoString(r_entry.term_data, termMsg);
+                LOG_INFO("Term message type %hu = %s", termMsg.type, r_entry.term_data);
                 break;
 
             case TERM_TYPE_REASON :
             {
                 // Get the term reason code from info data (first 2 bytes)
                 uint16_t term_reason;
-                memcpy(&term_reason, termMsg.info, 2);
+                memcpy(&term_reason, termMsg.value, sizeof(term_reason));
                 bgp::SWAP_BYTES(&term_reason);
                 r_entry.term_reason_code = term_reason;
 
@@ -1041,4 +1025,3 @@ void parseBMP::enableDebug() {
 void parseBMP::disableDebug() {
     debug = false;
 }
-

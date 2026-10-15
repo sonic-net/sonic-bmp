@@ -157,6 +157,16 @@ jobs:
       displayName: 'Install libswsscommon package'
 
     - script: |
+        set -ex
+        cmake -S . -B build-parser \
+          -DBMP_PARSER_TESTS_ONLY=ON -DBMP_PARSER_SANITIZERS=ON \
+          -DCMAKE_BUILD_TYPE=Debug
+        cmake --build build-parser --parallel 2
+        ctest --test-dir build-parser --output-on-failure
+      displayName: 'Offline BMP parser and reader sanitizer regressions'
+
+    - script: |
+        set -ex
         rm Makefile
         ls -alh
         git branch
@@ -168,6 +178,7 @@ jobs:
       displayName: 'Build original openbmp for sanity check'
 
     - script: |
+        set -ex
         rm -rf build/
         mkdir build
         pushd build
