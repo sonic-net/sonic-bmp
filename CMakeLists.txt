@@ -10,6 +10,16 @@ set (OPENBMPD_VERSION "${OPENBMP_VER_MAJOR}.${OPENBMP_VER_MINOR}.${OPENBMP_VER_P
 cmake_minimum_required (VERSION 2.6)
 project (OPENBMP)
 
+option(BMP_PARSER_TESTS "Build offline BMP parser regression tests" OFF)
+option(BMP_PARSER_TESTS_ONLY "Build offline parser tests without message-bus backends" OFF)
+option(BMP_PARSER_SANITIZERS "Enable address and undefined-behavior sanitizers for parser tests" OFF)
+if(BMP_PARSER_TESTS_ONLY)
+    set(BMP_PARSER_TESTS ON)
+endif()
+if(BMP_PARSER_TESTS)
+    enable_testing()
+endif()
+
 # find and include boost
 find_package( Boost 1.41.0 REQUIRED)
    if(Boost_FOUND)
@@ -31,6 +41,7 @@ endif()
 # Add the Server directory
 add_subdirectory (Server)
 
+if(NOT BMP_PARSER_TESTS_ONLY)
 FIND_PROGRAM(DPKG_CMD dpkg)
 IF(DPKG_CMD)
   add_subdirectory (deb_package)
@@ -40,5 +51,4 @@ FIND_PROGRAM(RPKG_CMD rpmbuild)
 IF(RPKG_CMD)
   add_subdirectory (rpm_package)
 ENDIF(RPKG_CMD)
-
-
+endif()
