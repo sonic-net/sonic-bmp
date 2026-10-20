@@ -13,11 +13,14 @@
 #include <swss/dbconnector.h>
 #include <swss/table.h>
 #include <swss/configdb.h>
+#include <swss/redispipeline.h>
 
 #include <string>
 #include <list>
 #include <map>
+#include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 #include <functional>
 #include <vector>
@@ -119,6 +122,16 @@ public:
     bool RemoveEntityFromBMPTable(const std::vector<std::string>& keys);
 
     /**
+     * FlushBMPTables - flush any pending buffered HSET operations on the
+     * pipelined per-table writers. Should be called at natural batch
+     * boundaries (e.g. after a full BMP UPDATE message is processed) so
+     * that buffered redis writes are actually delivered.
+     *
+     * \param [in] N/A
+     */
+    void FlushBMPTables();
+
+    /**
      * Get Key separator for deletion
      *
      * \param [in] N/A
@@ -126,7 +139,16 @@ public:
     std::string GetKeySeparator();
 
 private:
+    /**
+     * Lookup (or lazily create) a buffered swss::Table writer for the
+     * given table name, backed by pipeline_. Returns nullptr if the table
+     * is not in enabledTables_.
+     */
+    swss::Table* GetOrCreateBufferedTable(const std::string& table);
+
     std::shared_ptr<swss::DBConnector> stateDb_;
+    std::shared_ptr<swss::RedisPipeline> pipeline_;
+    std::unordered_map<std::string, std::unique_ptr<swss::Table>> bufferedTables_;
     std::string separator_;
     Logger *logger;
     std::unordered_set<std::string> enabledTables_;
