@@ -18,6 +18,8 @@
 #include <list>
 #include <map>
 #include <mutex>
+#include <memory>
+#include <exception>
 #include <unordered_set>
 #include <functional>
 #include <vector>
@@ -126,7 +128,20 @@ public:
     std::string GetKeySeparator();
 
 private:
+    /**
+     * Return the current BMP_STATE_DB connection handle (thread-safe).
+     */
+    std::shared_ptr<swss::DBConnector> GetStateDb();
+
+    /**
+     * Log a redis failure and re-establish stateDb_ when it is still the failed
+     * connection, so subsequent writes recover instead of failing permanently.
+     */
+    void HandleRedisError(const std::shared_ptr<swss::DBConnector>& usedDb,
+                          const char* op, const std::exception& e);
+
     std::shared_ptr<swss::DBConnector> stateDb_;
+    std::mutex stateDbMutex_;
     std::string separator_;
     Logger *logger;
     std::unordered_set<std::string> enabledTables_;

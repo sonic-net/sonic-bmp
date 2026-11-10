@@ -40,6 +40,35 @@ void RedisManager::Setup(Logger *logPtr) {
 }
 
 
+/*********************************************************************//**
+ * Return the current BMP_STATE_DB connection handle (thread-safe)
+ ***********************************************************************/
+std::shared_ptr<swss::DBConnector> RedisManager::GetStateDb() {
+    std::lock_guard<std::mutex> lock(stateDbMutex_);
+    return stateDb_;
+}
+
+
+/*********************************************************************//**
+ * Log a redis failure and re-establish stateDb_ when it is still the failed
+ * connection, so subsequent operations recover instead of failing permanently.
+ ***********************************************************************/
+void RedisManager::HandleRedisError(const std::shared_ptr<swss::DBConnector>& usedDb,
+                                    const char* op, const std::exception& e) {
+    LOG_ERR("RedisManager %s failed on %s: %s; reconnecting", op, BMP_DB_NAME, e.what());
+
+    std::lock_guard<std::mutex> lock(stateDbMutex_);
+    // Only the first thread to observe the broken connection reconnects; other
+    // threads holding the same handle pick up the new one on their next call.
+    if (stateDb_ == usedDb) {
+        try {
+            stateDb_ = std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
+        } catch (const std::exception& reconnectErr) {
+            LOG_ERR("RedisManager failed to reconnect to %s: %s", BMP_DB_NAME, reconnectErr.what());
+        }
+    }
+}
+
 
 /**
  * Get Key separator for deletion
@@ -64,7 +93,6 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
         DEBUG("RedisManager %s is disabled", table.c_str());
         return false;
     }
-    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
     std::ostringstream oss;
     for (const auto& key : keys) {
         oss << key << separator_;
@@ -74,7 +102,14 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
 
     DEBUG("RedisManager WriteBMPTable key = %s", fullKey.c_str());
 
-    stateBMPTable->set(fullKey, fieldValues);
+    std::shared_ptr<swss::DBConnector> db = GetStateDb();
+    try {
+        std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(db.get(), table);
+        stateBMPTable->set(fullKey, fieldValues);
+    } catch (const std::exception& e) {
+        HandleRedisError(db, "WriteBMPTable", e);
+        return false;
+    }
     return true;
 }
 
@@ -89,7 +124,13 @@ bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys
     for (const auto& key : keys) {
         DEBUG("RedisManager RemoveEntityFromBMPTable key = %s", key.c_str());
     }
-    stateDb_->del(keys);
+    std::shared_ptr<swss::DBConnector> db = GetStateDb();
+    try {
+        db->del(keys);
+    } catch (const std::exception& e) {
+        HandleRedisError(db, "RemoveEntityFromBMPTable", e);
+        return false;
+    }
     return true;
 }
 
@@ -141,12 +182,17 @@ bool RedisManager::InitBMPConfig() {
  */
 void RedisManager::ResetBMPTable(const std::string & table) {
 
-    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
-    std::vector<std::string> keys;
-    stateBMPTable->getKeys(keys);
-    LOG_INFO("RedisManager ResetBMPTable data size %d", keys.size());
+    std::shared_ptr<swss::DBConnector> db = GetStateDb();
+    try {
+        std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(db.get(), table);
+        std::vector<std::string> keys;
+        stateBMPTable->getKeys(keys);
+        LOG_INFO("RedisManager ResetBMPTable data size %d", keys.size());
 
-    stateDb_->del(keys);
+        db->del(keys);
+    } catch (const std::exception& e) {
+        HandleRedisError(db, "ResetBMPTable", e);
+    }
 }
 
 
