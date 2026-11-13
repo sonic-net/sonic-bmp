@@ -35,7 +35,7 @@ void RedisManager::Setup(Logger *logPtr) {
         swss::SonicDBConfig::initialize();
     }
 
-    stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
+    stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false, "", true);
     separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 }
 
