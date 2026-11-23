@@ -198,6 +198,9 @@ endif ()
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set_target_properties(openbmpd PROPERTIES LINK_FLAGS "-Wl,-z,noexecstack")
+endif()
 
 # Link the binary
 target_link_libraries (openbmpd ${LIBS} ${LIBSWSSCOMMON_LIBRARY})
