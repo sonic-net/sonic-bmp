@@ -1,0 +1,92 @@
+"""SONiC's Redis-backed OpenBMP receiver and its installation payload."""
+
+load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_python//python:py_test.bzl", "py_test")
+load("@sonic_build_infra//oci:runtime_packages.bzl", "runtime_packages")
+load("@sonic_build_infra//tar:sonic_deploy_tar.bzl", "sonic_deploy_tar")
+
+package(default_visibility = ["//visibility:public"])
+
+expand_template(
+    name = "version_header",
+    out = "openbmpd_version.h",
+    template = "openbmpd_version.h.in",
+    substitutions = {"@OPENBMPD_VERSION@": "0.14.0-0"},
+)
+
+# Match Make's ENABLE_REDIS selection. The Kafka backend has separate sources
+# and requires libraries which are absent from the SONiC runtime.
+cc_binary(
+    name = "openbmpd",
+    srcs = glob(
+        ["Server/src/**/*.cpp", "Server/src/**/*.h", "Server/src/**/*.hpp"],
+        exclude = ["Server/src/kafka/**"],
+    ) + [":version_header"],
+    copts = ["-std=c++14", "-Wno-unused-result", "-pthread"],
+    includes = ["Server/src", "Server/src/bgp", "Server/src/bgp/linkstate", "Server/src/bmp", "Server/src/redis"],
+    local_defines = ["REDIS_ENABLED"],
+    linkopts = ["-pthread"],
+    deps = [
+        "@bmp_build_debian//libboost-dev:libboost",
+        "@bmp_build_debian//libyaml-cpp-dev:libyaml-cpp_cc",
+        "@sonic_swss_common//:libswsscommon_shared",
+    ],
+    target_compatible_with = ["@platforms//cpu:x86_64", "@sonic_build_infra//platforms:trixie"],
+)
+
+sonic_deploy_tar(
+    name = "runtime",
+    binaries = {"./usr/bin/openbmpd uid=0 gid=0 mode=0755 time=0 type=file": ":openbmpd"},
+    force_debug_build = True,
+    srcs = ["Server/openbmpd.conf"],
+    mtree = ["./etc/bmp/openbmpd.conf uid=0 gid=0 mode=0644 time=0 type=file content=$(location Server/openbmpd.conf)"],
+)
+
+runtime_packages(
+    name = "runtime_packages.json",
+    module_name = "sonic-bmp",
+    control = "debian/control",
+    changelog = "debian/changelog",
+    debian_files = {"compat": "debian/compat"},
+    packages = {"sonic-bmp": ":runtime"},
+    required_paths = {"sonic-bmp": ["usr/bin/openbmpd", "etc/bmp/openbmpd.conf"]},
+    dependencies = ["@sonic_swss_common//:runtime_packages.json"],
+    apt_packages = {
+        "@bmp_runtime_debian//libyaml-cpp0.8:data": "@bmp_runtime_debian//libyaml-cpp0.8:control",
+    },
+)
+
+# Exercise the same backend-independent parser and reader sources as CTest.
+cc_test(
+    name = "bmp_parser_test",
+    srcs = [
+        "Server/src/Config.cpp",
+        "Server/src/Logger.cpp",
+        "Server/src/bmp/BMPReader.cpp",
+        "Server/src/bmp/parseBMP.cpp",
+        "Server/src/md5.cpp",
+        "Server/tests/parseBMP_test.cpp",
+    ] + glob([
+        "Server/src/*.h",
+        "Server/src/*.hpp",
+        "Server/src/bgp/**/*.cpp",
+        "Server/src/bgp/**/*.h",
+        "Server/src/bmp/*.h",
+    ]),
+    copts = ["-std=c++14", "-pthread"],
+    includes = ["Server/src", "Server/src/bgp", "Server/src/bgp/linkstate", "Server/src/bmp"],
+    linkopts = ["-pthread"],
+    deps = [
+        "@bmp_build_debian//libboost-dev:libboost",
+        "@bmp_build_debian//libyaml-cpp-dev:libyaml-cpp_cc",
+    ],
+)
+
+py_test(
+    name = "install_test",
+    srcs = ["install_test.py"],
+    args = ["$(rootpath :runtime)", "$(rootpath :runtime.debug_symbols)", "$(rootpath Server/openbmpd.conf)"],
+    data = [":runtime", ":runtime.debug_symbols", "Server/openbmpd.conf"],
+)

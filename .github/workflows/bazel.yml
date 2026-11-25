@@ -1,0 +1,55 @@
+name: Bazel OpenBMP
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    name: Redis collector (Trixie amd64)
+    runs-on: ubuntu-24.04
+    container: debian:trixie-20260918@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c
+    steps:
+      - name: Install runner tools
+        run: apt-get update && apt-get install -y --no-install-recommends binutils build-essential ca-certificates curl file git patch python3 tar unzip xz-utils zstd
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-version: 1.29.0
+          repository-cache: true
+      - name: Configure shared source mirrors
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/sonic-net/sonic-bazel-registry/main/ci/source_mirrors.cfg -o "$RUNNER_TEMP/source_mirrors.cfg"
+          echo "c28e6882aa9ebed84fd32586112e5fbfe9684af4e4aaa9942170919a3cbd308e  $RUNNER_TEMP/source_mirrors.cfg" | sha256sum -c -
+          echo "common --downloader_config=$RUNNER_TEMP/source_mirrors.cfg" >> .bazelrc
+      - name: Prepare the pinned Cosmos build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          source="https://raw.githubusercontent.com/sonic-net/sonic-bazel-registry/main/ci"
+          curl -fsSL "$source/github_sources.py" -o "$RUNNER_TEMP/github_sources.py"
+          curl -fsSL "$source/github_sources/cosmos-4.0.2.json" -o "$RUNNER_TEMP/cosmos.json"
+          echo "06836c38c56aa0e77e1f7adac68b6463f8f1e920e0beb000061cec5b7f5ec1f2  $RUNNER_TEMP/github_sources.py" | sha256sum -c -
+          echo "1579ad34288945a28a2d77f96f4764b8910dd3d856d688971e46e63e58119af5  $RUNNER_TEMP/cosmos.json" | sha256sum -c -
+          python3 "$RUNNER_TEMP/github_sources.py" --manifest "$RUNNER_TEMP/cosmos.json" \
+            --distdir "$RUNNER_TEMP/bmp-distdir" --cache-dir "$RUNNER_TEMP/bmp-tools-cache" \
+            --receipt "$RUNNER_TEMP/bmp-tools.json"
+          echo "common --distdir=$RUNNER_TEMP/bmp-distdir" >> .bazelrc
+      - name: Compile and test the OpenBMP payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          bazel build //:runtime //:runtime.debug_symbols //:runtime_packages.json
+          bazel test //:bmp_parser_test //:install_test
+          tar -tf "$(bazel cquery --output=files //:runtime)" | grep -F 'etc/bmp/openbmpd.conf'
+      - name: Run the collector on Trixie
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The deployed config-engine image supplies ZeroMQ's runtime dependencies.
+          apt-get install -y --no-install-recommends libzmq5
+          bazel run //:openbmpd -- -v | grep -F 'version : 0.14.0-0'

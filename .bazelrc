@@ -1,0 +1,7 @@
+common --registry=https://raw.githubusercontent.com/sonic-net/sonic-bazel-registry/main
+common --registry=https://bcr.bazel.build
+build --platforms=@sonic_build_infra//platforms:x86_64_trixie
+build --host_platform=@sonic_build_infra//platforms:x86_64_trixie
+build --incompatible_strict_action_env
+build --@sonic_swss_common//tools/bazel:yang_modules=True
+test --test_output=errors
