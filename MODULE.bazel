@@ -1,0 +1,102 @@
+module(
+    name = "sonic-bmp",
+    version = "0.1.0",
+    bazel_compatibility = [
+        ">=8.5.1",
+        "<=8.5.1",
+    ],
+)
+
+
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
+bazel_dep(name = "rules_cc", version = "0.2.20")
+bazel_dep(name = "rules_python", version = "1.9.0.sonic.2")
+bazel_dep(name = "rules_rs", version = "0.1.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "tar.bzl", version = "0.10.5.sonic.2")
+bazel_dep(name = "rules_distroless", version = "0.9.4.sonic.26")
+bazel_dep(name = "sonic-build-infra", version = "0.0.45-77ef625a4ddafc8cdc15f3cc6aee31eabac8a5de", repo_name = "sonic_build_infra")
+bazel_dep(name = "sonic-swss-common", version = "0.0.8-2a4ddd070edb719f2e969a880a5cfff711e64e72", repo_name = "sonic_swss_common")
+
+# Keep the owner's patched interfaces selected over older transitive requests.
+single_version_override(
+    module_name = "sonic-build-infra",
+    version = "0.0.45-77ef625a4ddafc8cdc15f3cc6aee31eabac8a5de",
+)
+
+single_version_override(
+    module_name = "tar.bzl",
+    version = "0.10.5.sonic.2",
+)
+
+single_version_override(
+    module_name = "rules_cc",
+    version = "0.2.20",
+)
+
+single_version_override(
+    module_name = "rules_go",
+    version = "0.65.0.sonic.2",
+)
+
+# Match the image's published ABI, Python, Rust and model dependencies when
+# SWSS Common and YANG management are resolved from this standalone root.
+single_version_override(
+    module_name = "libnl3",
+    version = "3.7.0.sonic.10",
+)
+
+single_version_override(
+    module_name = "libyang",
+    version = "3.12.2.sonic.9",
+)
+
+single_version_override(
+    module_name = "libyang-python",
+    version = "3.1.0.sonic.7",
+)
+
+single_version_override(
+    module_name = "sonic-rust-deps",
+    version = "0.0.5-4064a814e8530300a7acbad4a9aff0621e2fb98e",
+)
+
+single_version_override(
+    module_name = "sonic-yang-models",
+    version = "1.0.1-dd732f9512a84966487951250adae8e3e5c9943e",
+)
+
+gcc = use_extension("@sonic_build_infra//toolchains/gcc:extensions.bzl", "gcc")
+use_repo(gcc, "gcc_toolchains")
+
+register_toolchains("@gcc_toolchains//:all")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    python_version = "3.13",
+)
+python.toolchain(python_version = "3.11")
+
+# Common owns its Rust libraries. Its module extension still requires the
+# consuming root to select the shared toolchain even for C++-only targets.
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+use_repo(rules_rust, "rules_rust")
+
+rust = use_extension("@rules_rs//rs:rules_rust_reexported_extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",
+    versions = ["1.90.0"],
+)
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+bindgen = use_extension("@rules_rs//rs:rules_rust_bindgen.bzl", "rules_rust_bindgen")
+use_repo(bindgen, "rules_rust_bindgen")
+
+register_toolchains("@rules_rust_bindgen//:all")
+
+apt = use_extension("@rules_distroless//apt:extensions.bzl", "apt")
+apt.import_lock(lock = "@sonic_build_infra//apt:apt.lock.json")
+use_repo(apt, "bmp_build_debian", "bmp_runtime_debian")
