@@ -96,6 +96,10 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
     }
 
     redisMgr_.WriteBMPTable(BMP_TABLE_NEI, keys, fieldValues);
+    // Peer state transitions are infrequent and BMP consumers expect to
+    // see them immediately; flush right away rather than waiting for the
+    // pipeline buffer to fill.
+    redisMgr_.FlushBMPTables();
 }
 
 
@@ -183,7 +187,17 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
     }
 
     if (!del_keys.empty()) {
+        // RemoveEntityFromBMPTable already flushes any buffered SETs
+        // before issuing the DEL, so SET-then-DEL ordering on the same
+        // key is preserved.
         redisMgr_.RemoveEntityFromBMPTable(del_keys);
+    } else {
+        // ADD path accumulated buffered set() calls across all rib[i]
+        // entries above; emit them in a single pipelined round-trip
+        // instead of one HSET-per-route. Without this flush the buffered
+        // updates would only be sent when the pipeline buffer fills,
+        // which can delay BMP state visibility for slow producers.
+        redisMgr_.FlushBMPTables();
     }
 }
 
